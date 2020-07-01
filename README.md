@@ -11,7 +11,7 @@ $ go get -u github.com/journeyai/certool/cmd/cli
 ## CSR
 
 ```
-$ certool -s ed25519 -dns test.denver.journey -w
+$ certool -s ed25519 -dns test.denver.journey
 -----BEGIN CERTIFICATE REQUEST-----
 MIHTMIGGAgEAMDExCzAJBgNVBAYTAlVTMREwDwYDVQQIEwhDb2xvcmFkbzEPMA0G
 A1UEBxMGRGVudmVyMCowBQYDK2VwAyEA+FZ9BcOwo0EfVLOc2r06w0ZC6tPOvKt7
