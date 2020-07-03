@@ -129,8 +129,8 @@ Public Key Algorithm: Ed25519
 
 # Todo
 
-- [] Sign certs with yubikey
+- [ ] Sign certs with yubikey
 
-- [] Password protect ca key
+- [ ] Password protect ca key
 
-- [] Pull CA from secret manager
+- [ ] Pull CA from secret manager
