@@ -33,7 +33,7 @@ func GenerateCA(scheme string) (ca CA, err error) {
 	pem.Encode(out, &pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes})
 	out.Close()
 
-	csr, _, err := s.GenerateCSR(config.CAName)
+	csr, err := s.GenerateCSR(config.CAName)
 
 	cert := &x509.Certificate{
 		SignatureAlgorithm: csr.SignatureAlgorithm,

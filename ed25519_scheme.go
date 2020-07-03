@@ -33,16 +33,19 @@ func (e *Ed25519Scheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKe
 	return sk, pk, err
 }
 
-func (e *Ed25519Scheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, csrbytes []byte, err error) {
-	sk, pk, err := e.GenerateKeys()
-	if err != nil {
-		err = fmt.Errorf("issue generating keys for scheme %s %w", e.String(), err)
-		return
+func (e *Ed25519Scheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, err error) {
+	if e.sk == nil {
+		_, _, err = e.GenerateKeys()
+		if err != nil {
+			err = fmt.Errorf("issue generating keys for scheme %s %w", e.String(), err)
+			return
+		}
 	}
+
 	csr = &x509.CertificateRequest{
 		SignatureAlgorithm: x509.PureEd25519,
 		PublicKeyAlgorithm: x509.Ed25519,
-		PublicKey:          pk,
+		PublicKey:          e.pk,
 		Subject: pkix.Name{
 			Country:  []string{"US"},
 			Province: []string{"Colorado"},
@@ -50,7 +53,7 @@ func (e *Ed25519Scheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, c
 		},
 		DNSNames: []string{dns},
 	}
-	csrbytes, err = x509.CreateCertificateRequest(rand.Reader, csr, sk)
+	csrbytes, err := x509.CreateCertificateRequest(rand.Reader, csr, e.sk)
 	if err != nil {
 		err = fmt.Errorf("issue creating csr %w", err)
 		return
@@ -59,8 +62,6 @@ func (e *Ed25519Scheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, c
 	if err != nil {
 		return
 	}
-
-	// csrPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
 	return
 }
 

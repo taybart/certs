@@ -37,7 +37,7 @@ func (r *RSAScheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey, e
 	return rsask, &rsask.PublicKey, nil
 }
 
-func (r *RSAScheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, csrbytes []byte, err error) {
+func (r *RSAScheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, err error) {
 	sk, pk, err := r.GenerateKeys()
 	if err != nil {
 		err = fmt.Errorf("issue generating keys for scheme %s %w", r.String(), err)
@@ -54,7 +54,7 @@ func (r *RSAScheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, csrby
 		},
 		DNSNames: []string{dns},
 	}
-	csrbytes, err = x509.CreateCertificateRequest(rand.Reader, csr, sk)
+	csrbytes, err := x509.CreateCertificateRequest(rand.Reader, csr, sk)
 	if err != nil {
 		err = fmt.Errorf("issue creating csr %w", err)
 		return
@@ -64,8 +64,6 @@ func (r *RSAScheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, csrby
 		err = fmt.Errorf("issue parsing csr %w", err)
 		return
 	}
-
-	// csrPEM = pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrBytes})
 	return
 }
 
