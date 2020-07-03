@@ -9,8 +9,23 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/journeyai/certool/scheme"
 )
 
+func NewScheme(s string) (sch scheme.Scheme, err error) {
+	switch s {
+	case "ed25519":
+		sch = scheme.NewEd25519Scheme(256)
+	case "rsa", "rsa2048":
+		sch = scheme.NewRSAScheme(2048)
+	case "rsa4096":
+		sch = scheme.NewRSAScheme(4096)
+	default:
+		err = fmt.Errorf("unknown scheme %s", sch)
+	}
+	return
+}
 func HumanReadable(cert *x509.Certificate) string {
 	return fmt.Sprintf("DNSNames: %v\nSubject: %+v\n\tIssuer: %s\nPublic Key Algorithm: %s\n\tSignature %x",
 		cert.DNSNames,

@@ -1,4 +1,4 @@
-package certool
+package scheme
 
 import (
 	"crypto"
