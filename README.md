@@ -1,5 +1,7 @@
 # Certool
 
+![certool](certool.png)
+
 CLI for dealing with certificates
 
 ## Installation
