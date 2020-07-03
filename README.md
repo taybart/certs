@@ -4,7 +4,7 @@ A tool for dealing with certificates.
 
 ![certool](certool.png)
 
-##### Table of Contents
+## Table of Contents
 
 [Installation](#installation) 
 
