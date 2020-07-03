@@ -86,7 +86,7 @@ $ certool -w -s ed25519 -sign -dns test.denver.journey
 
 ## Validate certificate
 
-*System roots*
+**System roots**
 
 ```
 $ certool -verify -f ./test.denver.journey.crt
@@ -100,7 +100,7 @@ Certificate invalid invalid cert x509: certificate signed by unknown authority
 exit status 1
 ```
 
-*Certool CA*
+**Certool CA**
 
 ```
 $ certool -verify -custom -f ./test.denver.journey.crt
