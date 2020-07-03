@@ -36,7 +36,7 @@ func init() {
 
 	flag.BoolVar(&printCert, "p", false, "Print certificate contents")
 	flag.BoolVar(&sign, "sign", false, "sign request")
-	flag.BoolVar(&genCA, "gen", false, "Generate CA with name")
+	flag.BoolVar(&genCA, "gen", false, "Generate new CA")
 	flag.BoolVar(&write, "w", false, "Write values to file")
 }
 

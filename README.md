@@ -51,7 +51,7 @@ Usage of certool:
   -f string
         Certificate file
   -gen
-        Generate CA with name
+        Generate new CA
   -p    Print certificate contents
   -s string
         Cryptographic scheme for certs [ed25519, rsa2048, rsa4096] (default "ed25519")
