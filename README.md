@@ -8,7 +8,7 @@ CLI for dealing with certificates
 $ go get -u github.com/journeyai/certool/cmd/cli
 ```
 
-## CSR
+## Create and sign request
 
 ```
 $ certool -s ed25519 -sign -dns test.denver.journey
