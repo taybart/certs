@@ -13,10 +13,11 @@ import (
 )
 
 var (
-	scheme    string
-	dns       string
-	caKey     string
-	caCert    string
+	configLocation string
+	scheme         string
+	dns            string
+	// caKey     string
+	// caCert    string
 	file      string
 	write     bool
 	sign      bool
@@ -25,12 +26,13 @@ var (
 )
 
 func init() {
+	flag.StringVar(&configLocation, "c", certool.DefaultConfig.Dir, "Config file location")
 	flag.StringVar(&scheme, "s", "ed25519", "Cryptographic scheme for certs [ed25519, rsa2048, rsa4096]")
 	flag.StringVar(&dns, "dns", "", "DNS for certificate")
+	flag.StringVar(&file, "f", "", "Certificate file")
 
-	flag.StringVar(&caKey, "key", "", "DNS for certificate")
-	flag.StringVar(&caCert, "crt", "", "DNS for certificate")
-	flag.StringVar(&file, "f", "", "DNS for certificate")
+	// flag.StringVar(&caKey, "key", "", "CA certificate key")
+	// flag.StringVar(&caCert, "crt", "", "CA certificate file")
 
 	flag.BoolVar(&printCert, "p", false, "Print certificate contents")
 	flag.BoolVar(&sign, "sign", false, "sign request")
@@ -40,7 +42,7 @@ func init() {
 
 func main() {
 	flag.Parse()
-	err := certool.LoadConfig()
+	err := certool.LoadConfig(configLocation)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)

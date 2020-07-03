@@ -33,7 +33,6 @@ Using `""` as the key will prompt for the password during the command, this is t
 
 ```json
 {
- "dir": "/home/user/.config/certool",
  "caName": "ca.journey",
  "caKey": "/home/user/.config/certool/ca.journey.key",
  "caCrt": "/home/user/.config/certool/ca.journey.crt",
@@ -45,16 +44,14 @@ Using `""` as the key will prompt for the password during the command, this is t
 
 ```
 Usage of certool:
-  -crt string
-        DNS for certificate
+  -c string
+        Config file location (default "/home/user/.config/certool")
   -dns string
         DNS for certificate
   -f string
-        DNS for certificate
+        Certificate file
   -gen
         Generate CA with name
-  -key string
-        DNS for certificate
   -p    Print certificate contents
   -s string
         Cryptographic scheme for certs [ed25519, rsa2048, rsa4096] (default "ed25519")

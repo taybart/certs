@@ -9,7 +9,7 @@ import (
 )
 
 type Config struct {
-	Dir        string `json:"dir"`
+	Dir        string `json:"_"`
 	CAName     string `json:"caName"`
 	CAKey      string `json:"caKey"`
 	CACrt      string `json:"caCrt"`
@@ -26,7 +26,8 @@ var DefaultConfig = Config{
 
 var config = DefaultConfig
 
-func LoadConfig() (err error) {
+func LoadConfig(configLocation string) (err error) {
+	config.Dir = configLocation
 	if _, err = os.Stat(config.Dir); os.IsNotExist(err) {
 		err = os.MkdirAll(config.Dir, 0755)
 		if err != nil {
