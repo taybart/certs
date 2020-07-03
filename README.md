@@ -22,6 +22,8 @@ A tool for dealing with certificates.
     
   * [Print certificate info](#print-certificate-info)
 
+[Todo](#todo)
+
 # Installation
 
 ```
@@ -124,3 +126,9 @@ Subject: L=Denver,ST=Colorado,C=US
 Public Key Algorithm: Ed25519
         Signature f9bfbd407df574773d8a5ed0df7c47ca0dbf3a7349efd2de86883e52b41d7d98e1e86d34783e40082e16891d3dca9d950496e59225ced637cdec65c4248ae20d
 ```
+
+# Todo
+
+1. Sign certs with yubikey
+1. Password protect ca key
+1. Pull CA from secret manager
