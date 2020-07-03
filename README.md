@@ -8,6 +8,20 @@ CLI for dealing with certificates
 $ go get -u github.com/journeyai/certool/cmd/cli
 ```
 
+## Config
+
+Setting the password to `_` will not add a password to the ca key. 
+
+```json
+{
+ "dir": "/Users/taylor/.config/certool",
+ "caName": "ca.journey",
+ "caKey": "/Users/taylor/.config/certool/ca.journey.key",
+ "caCrt": "/Users/taylor/.config/certool/ca.journey.crt",
+ "caPassword": "_"
+}
+```
+
 ## Create and sign request
 
 ```
