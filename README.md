@@ -20,6 +20,8 @@ A tool for dealing with certificates.
   
     * [Output to stdout](#output-to-stdout)
     
+  * [Validate certificate](#validate-certificate)
+
   * [Print certificate info](#print-certificate-info)
 
 [Todo](#todo)
@@ -82,6 +84,35 @@ $ certool -w -s ed25519 -dns test.denver.journey
 $ certool -w -s ed25519 -sign -dns test.denver.journey
 ```
 
+## Validate certificate
+
+*System roots*
+
+```
+$ certool -verify -f ./test.denver.journey.crt
+DNSNames: [test.denver.journey]
+Subject: L=Denver,ST=Colorado,C=US
+        Issuer: CN=ca.journey,O=Journey,POSTALCODE=80202,STREET=1999 Broadway St,L=Denver,ST=Colorado,C=US
+Public Key Algorithm: Ed25519
+        Signature d5bfe3945fd311dabe49c4e8cc4a64e4cbf4ea390d887a9838619a21a814739478d8b2985a3339a55de3160b8d341184f6dfc030173c0647fa06a2dd6ef0a405
+
+Certificate invalid invalid cert x509: certificate signed by unknown authority
+exit status 1
+```
+
+*Certool CA*
+
+```
+$ certool -verify -custom -f ./test.denver.journey.crt
+DNSNames: [test.denver.journey]
+Subject: L=Denver,ST=Colorado,C=US
+        Issuer: CN=ca.journey,O=Journey,POSTALCODE=80202,STREET=1999 Broadway St,L=Denver,ST=Colorado,C=US
+Public Key Algorithm: Ed25519
+        Signature d5bfe3945fd311dabe49c4e8cc4a64e4cbf4ea390d887a9838619a21a814739478d8b2985a3339a55de3160b8d341184f6dfc030173c0647fa06a2dd6ef0a405
+
+Certificate valid
+```
+
 ### Output to stdout
 
 Removing `-w` will output results to stdout.
@@ -128,6 +159,10 @@ Public Key Algorithm: Ed25519
 ```
 
 # Todo
+
+- [ ] Validate and print remote TLS certificates [HTTP/1.1]
+
+- [ ] Validate and print remote TLS certificates [gRPC & HTTP/2]
 
 - [ ] Sign certs with yubikey
 

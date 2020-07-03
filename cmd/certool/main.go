@@ -19,6 +19,8 @@ var (
 	// caKey     string
 	// caCert    string
 	file      string
+	customCA  bool
+	verify    bool
 	write     bool
 	sign      bool
 	genCA     bool
@@ -35,6 +37,8 @@ func init() {
 	// flag.StringVar(&caCert, "crt", "", "CA certificate file")
 
 	flag.BoolVar(&printCert, "p", false, "Print certificate contents")
+	flag.BoolVar(&verify, "verify", false, "Check cert validity")
+	flag.BoolVar(&customCA, "custom", false, "Validate using certool CA")
 	flag.BoolVar(&sign, "sign", false, "sign request")
 	flag.BoolVar(&genCA, "gen", false, "Generate new CA")
 	flag.BoolVar(&write, "w", false, "Write values to file")
@@ -55,10 +59,44 @@ func main() {
 			createCSR()
 		}
 	}
+
+	if verify {
+		if file == "" {
+			fmt.Println("Please add -f [filename]")
+			os.Exit(1)
+		}
+
+		cert, err := certool.LoadCertificate(file)
+		if err != nil {
+			fmt.Println("Issue loading cert", err)
+			os.Exit(1)
+		}
+		fmt.Printf("%s\n\n", certool.HumanReadable(cert))
+		if customCA {
+			ca, err := certool.LoadCA()
+			if err != nil {
+				fmt.Println("Issue loading certool ca", err)
+				os.Exit(1)
+			}
+			err = certool.Verify([]*x509.Certificate{ca.Cert}, cert, dns)
+			if err != nil {
+				fmt.Println("Certificate invalid", err)
+				os.Exit(1)
+			}
+		} else {
+			err := certool.VerifySystemRoots(cert, dns)
+			if err != nil {
+				fmt.Println("Certificate invalid", err)
+				os.Exit(1)
+			}
+		}
+		fmt.Println("Certificate valid")
+	}
+
 	if printCert {
 		if file == "" {
 			fmt.Println("Please add -f [filename]")
-			os.Exit(0)
+			os.Exit(1)
 		}
 		cert, err := certool.LoadCertificate(file)
 		if err != nil {

@@ -54,6 +54,17 @@ func Verify(chain []*x509.Certificate, cert *x509.Certificate, dns string) (err 
 	return
 }
 
+func VerifySystemRoots(cert *x509.Certificate, dns string) (err error) {
+	opts := x509.VerifyOptions{
+		DNSName: dns,
+	}
+
+	if _, err = cert.Verify(opts); err != nil {
+		err = fmt.Errorf("invalid cert %w", err)
+	}
+	return
+}
+
 /* func Verify(root []byte, cert *x509.Certificate, dns string) (err error) {
 	roots := x509.NewCertPool()
 	ok := roots.AppendCertsFromPEM(root)
