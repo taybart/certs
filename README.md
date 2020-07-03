@@ -134,3 +134,7 @@ Public Key Algorithm: Ed25519
 - [ ] Password protect ca key
 
 - [ ] Pull CA from secret manager
+
+- [ ] Store certificates in secret manager
+
+- [ ] Create Kubernetes secrets and/or hook into cert-manager
