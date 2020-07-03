@@ -4,15 +4,24 @@
 
 CLI for dealing with certificates
 
+##### Table of Contents
+[Installation](#Installation) 
+
+[Configuration](#Configuration) 
+
+[Usage](#Usage) 
+
+  1. [Generating a Certificate Authority](#Generating a Certificate Authority)
+
 ## Installation
 
 ```
 $ go get -u github.com/journeyai/certool/cmd/certool
 ```
 
-## Config
+## Configuration
 
-Setting the password to `_` will not add a password to the ca key. 
+Using `""` as the key will prompt for the password during the command, this is the recommended use.  Setting the password to `_` will not add a password to the ca key. 
 
 ```json
 {
@@ -24,7 +33,24 @@ Setting the password to `_` will not add a password to the ca key.
 }
 ```
 
-## Create and sign request
+### Generating a Certificate Authority
+
+
+### Create CSR
+
+```
+$ certool -s ed25519 -sign -dns test.denver.journey -w
+```
+
+### Create and sign request
+
+```
+$ certool -s ed25519 -sign -dns test.denver.journey -w
+```
+
+### Output to stdout
+
+Removing `-w` will output results to stdout.
 
 ```
 $ certool -s ed25519 -sign -dns test.denver.journey
