@@ -1,51 +1,84 @@
 # Certool
 
+A tool for dealing with certificates.
+
 ![certool](certool.png)
 
-CLI for dealing with certificates
-
 ##### Table of Contents
-[Installation](#Installation) 
 
-[Configuration](#Configuration) 
+[Installation](#installation) 
 
-[Usage](#Usage) 
+[Configuration](#configuration) 
 
-  1. [Generating a Certificate Authority](#Generating a Certificate Authority)
+[Usage](#usage) 
 
-## Installation
+  [Generating a Certificate Authority](#generating-a-certificate-authority)
+  
+  [Create CSR](#create-csr)
+  
+  [Create and sign request](#create-and-sign-request)
+  
+  [Output to stdout](#output-to-stdout)
+
+# Installation
 
 ```
 $ go get -u github.com/journeyai/certool/cmd/certool
 ```
 
-## Configuration
+# Configuration
 
+Certool's configuration lives at `$HOME/.config/certool/config.json`
 Using `""` as the key will prompt for the password during the command, this is the recommended use.  Setting the password to `_` will not add a password to the ca key. 
 
 ```json
 {
- "dir": "/Users/taylor/.config/certool",
+ "dir": "/home/user/.config/certool",
  "caName": "ca.journey",
- "caKey": "/Users/taylor/.config/certool/ca.journey.key",
- "caCrt": "/Users/taylor/.config/certool/ca.journey.crt",
- "caPassword": "_"
+ "caKey": "/home/user/.config/certool/ca.journey.key",
+ "caCrt": "/home/user/.config/certool/ca.journey.crt",
+ "caPassword": ""
 }
 ```
 
-### Generating a Certificate Authority
-
-
-### Create CSR
+# Usage
 
 ```
-$ certool -s ed25519 -sign -dns test.denver.journey -w
+Usage of certool:
+  -crt string
+        DNS for certificate
+  -dns string
+        DNS for certificate
+  -f string
+        DNS for certificate
+  -gen
+        Generate CA with name
+  -key string
+        DNS for certificate
+  -p    Print certificate contents
+  -s string
+        Cryptographic scheme for certs [ed25519, rsa2048, rsa4096] (default "ed25519")
+  -sign
+        sign request
+  -w    Write values to file
 ```
 
-### Create and sign request
+## Generating a Certificate Authority
 
 ```
-$ certool -s ed25519 -sign -dns test.denver.journey -w
+$ certool -s ed25519 -gen
+```
+
+## Create CSR
+
+```
+$ certool -w -s ed25519 -dns test.denver.journey
+```
+
+## Create and sign request
+
+```
+$ certool -w -s ed25519 -sign -dns test.denver.journey
 ```
 
 ### Output to stdout
