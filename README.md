@@ -2,7 +2,7 @@
 
 A tool for dealing with certificates.
 
-![certool](certool.png)
+![certool](assets/certool.png)
 
 ## Table of Contents
 
