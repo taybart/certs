@@ -77,7 +77,7 @@ func GenerateCA(scheme string) (ca CA, err error) {
 	return
 }
 
-// LoadCA RestartCA
+// LoadCA
 func LoadCA() (ca CA, err error) {
 	key, err := openPEM(config.CAKey)
 	if err != nil {

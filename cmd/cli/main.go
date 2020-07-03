@@ -15,13 +15,13 @@ import (
 var (
 	scheme    string
 	dns       string
+	caKey     string
+	caCert    string
+	file      string
 	write     bool
 	sign      bool
 	genCA     bool
-	caKey     string
-	caCert    string
 	printCert bool
-	file      string
 )
 
 func init() {
