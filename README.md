@@ -18,7 +18,9 @@ A tool for dealing with certificates.
   
   * [Create and sign request](#create-and-sign-request)
   
-  * [Output to stdout](#output-to-stdout)
+    * [Output to stdout](#output-to-stdout)
+    
+  * [Print certificate info](#print-certificate-info)
 
 # Installation
 
@@ -109,4 +111,16 @@ BQYDK2VwA0EA8MNcJTGPDDXQ/p4uow6/vwZSfjS6+OgeIAU4AaivJpE20uU2+H8n
 MYQBgNVqhkgGEUFIkg5eVpBIHB5x38MLAw==
 -----END CERTIFICATE-----
 
+```
+
+## Print certificate info
+
+```
+$ certool -dns test.denver.journey -sign -w                                                                                                                                                                
+$ certool -p -f test.denver.journey.crt    
+DNSNames: [test.denver.journey]
+Subject: L=Denver,ST=Colorado,C=US
+        Issuer: CN=ca.journey,O=Journey,POSTALCODE=80202,STREET=1999 Broadway St,L=Denver,ST=Colorado,C=US
+Public Key Algorithm: Ed25519
+        Signature f9bfbd407df574773d8a5ed0df7c47ca0dbf3a7349efd2de86883e52b41d7d98e1e86d34783e40082e16891d3dca9d950496e59225ced637cdec65c4248ae20d
 ```
