@@ -12,13 +12,13 @@ A tool for dealing with certificates.
 
 [Usage](#usage) 
 
-  [Generating a Certificate Authority](#generating-a-certificate-authority)
+  * [Generating a Certificate Authority](#generating-a-certificate-authority)
   
-  [Create CSR](#create-csr)
+  * [Create CSR](#create-csr)
   
-  [Create and sign request](#create-and-sign-request)
+  * [Create and sign request](#create-and-sign-request)
   
-  [Output to stdout](#output-to-stdout)
+  * [Output to stdout](#output-to-stdout)
 
 # Installation
 
