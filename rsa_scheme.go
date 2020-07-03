@@ -33,8 +33,8 @@ func (r *RSAScheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey, e
 		return
 	}
 	r.sk = rsask
-	r.pk = rsask.PublicKey
-	return rsask, rsask.PublicKey, nil
+	r.pk = &rsask.PublicKey
+	return rsask, &rsask.PublicKey, nil
 }
 
 func (r *RSAScheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, csrbytes []byte, err error) {
@@ -46,7 +46,7 @@ func (r *RSAScheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, csrby
 	csr = &x509.CertificateRequest{
 		SignatureAlgorithm: x509.SHA256WithRSA,
 		PublicKeyAlgorithm: x509.RSA,
-		PublicKey:          pk.(rsa.PublicKey),
+		PublicKey:          pk,
 		Subject: pkix.Name{
 			Country:  []string{"US"},
 			Province: []string{"Colorado"},
@@ -54,13 +54,14 @@ func (r *RSAScheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, csrby
 		},
 		DNSNames: []string{dns},
 	}
-	csrbytes, err = x509.CreateCertificateRequest(rand.Reader, csr, sk.(*rsa.PrivateKey))
+	csrbytes, err = x509.CreateCertificateRequest(rand.Reader, csr, sk)
 	if err != nil {
 		err = fmt.Errorf("issue creating csr %w", err)
 		return
 	}
 	csr, err = x509.ParseCertificateRequest(csrbytes)
 	if err != nil {
+		err = fmt.Errorf("issue parsing csr %w", err)
 		return
 	}
 
