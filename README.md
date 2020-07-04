@@ -51,7 +51,9 @@ Using `""` as the key will prompt for the password during the command, this is t
 ```
 Usage of certool:
   -c string
-        Config file location (default "/home/user/.config/certool")
+        Config file location (default "/Users/taylor/.config/certool")
+  -custom
+        Validate using certool CA
   -dns string
         DNS for certificate
   -f string
@@ -63,6 +65,8 @@ Usage of certool:
         Cryptographic scheme for certs [ed25519, rsa2048, rsa4096] (default "ed25519")
   -sign
         sign request
+  -verify
+        Check cert validity
   -w    Write values to file
 ```
 
@@ -86,7 +90,7 @@ $ certool -w -s ed25519 -sign -dns test.denver.journey
 
 ## Validate certificate
 
-*System roots*
+**System roots**
 
 ```
 $ certool -verify -f ./test.denver.journey.crt
@@ -116,7 +120,7 @@ Certificate invalid invalid cert x509: certificate signed by unknown authority
 exit status 1
 ```
 
-*Certool CA*
+**Certool CA**
 
 ```
 $ certool -verify -custom -f ./test.denver.journey.crt
