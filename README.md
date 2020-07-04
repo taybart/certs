@@ -6,20 +6,20 @@ A tool for dealing with certificates.
 
 ## Table of Contents
 
-[Installation](#installation) 
+[Installation](#installation)
 
-[Configuration](#configuration) 
+[Configuration](#configuration)
 
-[Usage](#usage) 
+[Usage](#usage)
 
   * [Generating a Certificate Authority](#generating-a-certificate-authority)
-  
+
   * [Create CSR](#create-csr)
-  
+
   * [Create and sign request](#create-and-sign-request)
-  
+
     * [Output to stdout](#output-to-stdout)
-    
+
   * [Validate certificate](#validate-certificate)
 
   * [Print certificate info](#print-certificate-info)
@@ -35,7 +35,7 @@ $ go get -u github.com/journeyai/certool/cmd/certool
 # Configuration
 
 Certool's configuration lives at `$HOME/.config/certool/config.json`
-Using `""` as the key will prompt for the password during the command, this is the recommended use.  Setting the password to `_` will not add a password to the ca key. 
+Using `""` as the key will prompt for the password during the command, this is the recommended use.  Setting the password to `_` will not add a password to the ca key.
 
 ```json
 {
@@ -91,10 +91,26 @@ $ certool -w -s ed25519 -sign -dns test.denver.journey
 ```
 $ certool -verify -f ./test.denver.journey.crt
 DNSNames: [test.denver.journey]
-Subject: L=Denver,ST=Colorado,C=US
-        Issuer: CN=ca.journey,O=Journey,POSTALCODE=80202,STREET=1999 Broadway St,L=Denver,ST=Colorado,C=US
-Public Key Algorithm: Ed25519
-        Signature d5bfe3945fd311dabe49c4e8cc4a64e4cbf4ea390d887a9838619a21a814739478d8b2985a3339a55de3160b8d341184f6dfc030173c0647fa06a2dd6ef0a405
+SerialNumber: 33402702424818636287940487352184976883
+
+Subject: test.denver.journey
+         Journey Engineering
+         1999 Broadway St, Denver Colorado
+
+Issuer:  ca.journey
+         Journey Engineering
+         1999 Broadway St, Denver Colorado
+
+KeyUsage: [DigitalSignature CRLSign]
+ExtKeyUsage: [ServerAuth OCSPSigning]
+
+PublicKeyAlgorithm: Ed25519
+SignatureAlgorithm: Ed25519
+
+Signature:
+      202194762a98b48945cd5cf190fbc300246477c41b8ea4d4c2
+      43e0871fcb8bd0087abd167da58640dcd394440b6f45309a35
+      4b801ec310b3a8dd10ef8a74c007
 
 Certificate invalid invalid cert x509: certificate signed by unknown authority
 exit status 1
@@ -105,10 +121,26 @@ exit status 1
 ```
 $ certool -verify -custom -f ./test.denver.journey.crt
 DNSNames: [test.denver.journey]
-Subject: L=Denver,ST=Colorado,C=US
-        Issuer: CN=ca.journey,O=Journey,POSTALCODE=80202,STREET=1999 Broadway St,L=Denver,ST=Colorado,C=US
-Public Key Algorithm: Ed25519
-        Signature d5bfe3945fd311dabe49c4e8cc4a64e4cbf4ea390d887a9838619a21a814739478d8b2985a3339a55de3160b8d341184f6dfc030173c0647fa06a2dd6ef0a405
+SerialNumber: 33402702424818636287940487352184976883
+
+Subject: test.denver.journey
+         Journey Engineering
+         1999 Broadway St, Denver Colorado
+
+Issuer:  ca.journey
+         Journey Engineering
+         1999 Broadway St, Denver Colorado
+
+KeyUsage: [CRLSign DigitalSignature]
+ExtKeyUsage: [ServerAuth OCSPSigning]
+
+PublicKeyAlgorithm: Ed25519
+SignatureAlgorithm: Ed25519
+
+Signature:
+      202194762a98b48945cd5cf190fbc300246477c41b8ea4d4c2
+      43e0871fcb8bd0087abd167da58640dcd394440b6f45309a35
+      4b801ec310b3a8dd10ef8a74c007
 
 Certificate valid
 ```
@@ -149,13 +181,29 @@ MYQBgNVqhkgGEUFIkg5eVpBIHB5x38MLAw==
 ## Print certificate info
 
 ```
-$ certool -dns test.denver.journey -sign -w                                                                                                                                                                
-$ certool -p -f test.denver.journey.crt    
+$ certool -dns test.denver.journey -sign -w
+$ certool -p -f test.denver.journey.crt
 DNSNames: [test.denver.journey]
-Subject: L=Denver,ST=Colorado,C=US
-        Issuer: CN=ca.journey,O=Journey,POSTALCODE=80202,STREET=1999 Broadway St,L=Denver,ST=Colorado,C=US
-Public Key Algorithm: Ed25519
-        Signature f9bfbd407df574773d8a5ed0df7c47ca0dbf3a7349efd2de86883e52b41d7d98e1e86d34783e40082e16891d3dca9d950496e59225ced637cdec65c4248ae20d
+SerialNumber: 33402702424818636287940487352184976883
+
+Subject: test.denver.journey
+         Journey Engineering
+         1999 Broadway St, Denver Colorado
+
+Issuer:  ca.journey
+         Journey Engineering
+         1999 Broadway St, Denver Colorado
+
+KeyUsage: [CRLSign DigitalSignature]
+ExtKeyUsage: [ServerAuth OCSPSigning]
+
+PublicKeyAlgorithm: Ed25519
+SignatureAlgorithm: Ed25519
+
+Signature:
+      202194762a98b48945cd5cf190fbc300246477c41b8ea4d4c2
+      43e0871fcb8bd0087abd167da58640dcd394440b6f45309a35
+      4b801ec310b3a8dd10ef8a74c007
 ```
 
 # Todo
