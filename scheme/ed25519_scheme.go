@@ -47,9 +47,14 @@ func (e *Ed25519Scheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, e
 		PublicKeyAlgorithm: x509.Ed25519,
 		PublicKey:          e.pk,
 		Subject: pkix.Name{
-			Country:  []string{"US"},
-			Province: []string{"Colorado"},
-			Locality: []string{"Denver"},
+			CommonName:         dns,
+			Organization:       []string{"Journey"},
+			OrganizationalUnit: []string{"Engineering"},
+			Country:            []string{"US"},
+			Province:           []string{"Colorado"},
+			Locality:           []string{"Denver"},
+			StreetAddress:      []string{"1999 Broadway St"},
+			PostalCode:         []string{"80202"},
 		},
 		DNSNames: []string{dns},
 	}
