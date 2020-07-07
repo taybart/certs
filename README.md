@@ -22,6 +22,8 @@ A tool for dealing with certificates.
 
   * [Validate certificate](#validate-certificate)
 
+  * [Validate remote certificate](#validate-remote-certificate)
+
   * [Print certificate info](#print-certificate-info)
 
   * [Print remote certificate chain](#print-remote-certificate-chain)
@@ -149,6 +151,47 @@ Signature:
       4b801ec310b3a8dd10ef8a74c007
 
 Certificate valid
+```
+
+## Validate remote certificate
+
+**System roots**
+
+```
+$ certool -verify -remote -dns example.com
+DNSNames: [www.example.org example.com example.edu example.net example.org www.example.com www.example.edu www.example.net]
+SerialNumber: 21020869104500376438182461249190639870
+
+Subject: www.example.org
+         Internet Corporation for Assigned Names and Numbers Technology
+         Los Angeles California
+
+Issuer:  DigiCert SHA2 Secure Server CA
+         DigiCert Inc
+
+
+KeyUsage: [DigitalSignature KeyEncipherment]
+ExtKeyUsage: [ServerAuth ClientAuth]
+
+PublicKeyAlgorithm: RSA
+SignatureAlgorithm: SHA256-RSA
+
+Signature:
+      737085ef4041a76a43d5789c7b5548e6bc6b9986bafb0d038b
+      78fe11f029a00ccd69140bc60478b2cef087d5019dc4597a71
+      fef06e9ec1a0b0912d1fea3d55c533050ccdc13518b06a6866
+      4cbf5621da5bd948b98c3521915ddc75d77a462c2227a66fd3
+      3a17ebbebd13c5122673c05da335896afb27d4ddaa74742e37
+      e5013ba6d030b083d0a1c4752185b2e5fa670030a2bc53834d
+      bfd6a883bbbcd6ed1cb31ef1580382008e9cef90f21a5fa2a3
+      06da5dbe9fda5da6e62fde588018d3f1627ba6a39faea86972
+      638165ae8283a3b5978a9b2051ff1a3f61401e48d06b38f9e1
+      fa17d8774a88e63d36244fef0ab99f70f38327f8cf2a057510
+      a18a0a8088cd
+OCSPServer: [http://ocsp.digicert.com]
+
+Remote chain valid
+System check valid
 ```
 
 ### Output to stdout

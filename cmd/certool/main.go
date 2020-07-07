@@ -84,7 +84,8 @@ func main() {
 				fmt.Println("Certificate invalid", err)
 				os.Exit(1)
 			}
-			fmt.Println("Chain valid")
+			fmt.Printf("%v\n\n", certool.HumanReadable(chain[0]))
+			fmt.Println("Remote chain valid")
 			intermediate := []*x509.Certificate{}
 			if len(chain) > 2 {
 				intermediate = chain[1 : len(chain)-1]
