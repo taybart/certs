@@ -56,6 +56,8 @@ Using `""` as the key will prompt for the password during the command, this is t
 Usage of certool:
   -c string
         Config file location (default "/Users/taylor/.config/certool")
+  -csr
+        generate csr
   -custom
         Validate using certool CA
   -dns string
@@ -64,7 +66,10 @@ Usage of certool:
         Certificate file
   -gen
         Generate new CA
-  -p    Print certificate contents
+  -p string
+        Port of remote server (default "443")
+  -remote
+        Check remote peer cert
   -s string
         Cryptographic scheme for certs [ed25519, rsa2048, rsa4096] (default "ed25519")
   -sign
