@@ -46,7 +46,7 @@ Using `""` as the key will prompt for the password during the command, this is t
  "caName": "ca.journey",
  "caKey": "/home/user/.config/certool/ca.journey.key",
  "caCrt": "/home/user/.config/certool/ca.journey.crt",
- "caPassword": ""
+ "caPassword": "hunter2"
 }
 ```
 
