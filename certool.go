@@ -49,11 +49,11 @@ Certificate is a CA
 {{ end }}
 Subject: {{ .C.Subject.CommonName }}
 	 {{ if ne (len .C.Subject.Organization) 0 }}{{ index .C.Subject.Organization 0 }}{{end}} {{ if ne (len .C.Subject.OrganizationalUnit) 0 }}{{ index .C.Subject.OrganizationalUnit 0 }}{{ end }}
-	 {{ if ne (len .C.Subject.StreetAddress) 0 }}{{ index .C.Subject.StreetAddress 0 }}, {{end}}{{ if ne (len .C.Subject.Locality) 0 }}{{ index .C.Subject.Locality 0 }}{{end}} {{ index .C.Subject.Province 0 }}
+	 {{ if ne (len .C.Subject.StreetAddress) 0 }}{{ index .C.Subject.StreetAddress 0 }}, {{end}}{{ if ne (len .C.Subject.Locality) 0 }}{{ index .C.Subject.Locality 0 }}{{end}}{{ if ne (len .C.Subject.Province) 0 }} {{ index .C.Subject.Province 0 }}{{end}}
 
 Issuer:  {{ .C.Issuer.CommonName }}
 	 {{ if ne (len .C.Issuer.Organization) 0 }}{{ index .C.Issuer.Organization 0 }}{{end}} {{ if ne (len .C.Issuer.OrganizationalUnit) 0 }}{{ index .C.Issuer.OrganizationalUnit 0 }}{{ end }}
-	 {{ if ne (len .C.Issuer.StreetAddress) 0 }}{{ index .C.Issuer.StreetAddress 0 }}, {{end}}{{ if ne (len .C.Issuer.Locality) 0 }}{{ index .C.Issuer.Locality 0 }}{{end}} {{ index .C.Issuer.Province 0 }}
+	 {{ if ne (len .C.Issuer.StreetAddress) 0 }}{{ index .C.Issuer.StreetAddress 0 }}, {{end}}{{ if ne (len .C.Issuer.Locality) 0 }}{{ index .C.Issuer.Locality 0 }}{{end}}{{ if ne (len .C.Issuer.Province) 0 }} {{ index .C.Issuer.Province 0 }}{{end}}
 
 KeyUsage: {{ .KeyUsages }}
 ExtKeyUsage: {{ .ExtKeyUsages }}

@@ -18,28 +18,32 @@ var (
 	dns            string
 	// caKey     string
 	// caCert    string
-	file      string
-	customCA  bool
-	verify    bool
-	write     bool
-	sign      bool
-	genCA     bool
-	printCert bool
+	file     string
+	port     string
+	customCA bool
+	verify   bool
+	remote   bool
+	write    bool
+	sign     bool
+	csr      bool
+	genCA    bool
 )
 
 func init() {
 	flag.StringVar(&configLocation, "c", certool.DefaultConfig.Dir, "Config file location")
 	flag.StringVar(&scheme, "s", "ed25519", "Cryptographic scheme for certs [ed25519, rsa2048, rsa4096]")
 	flag.StringVar(&dns, "dns", "", "DNS for certificate")
+	flag.StringVar(&port, "p", "443", "Port of remote server")
 	flag.StringVar(&file, "f", "", "Certificate file")
 
 	// flag.StringVar(&caKey, "key", "", "CA certificate key")
 	// flag.StringVar(&caCert, "crt", "", "CA certificate file")
 
-	flag.BoolVar(&printCert, "p", false, "Print certificate contents")
 	flag.BoolVar(&verify, "verify", false, "Check cert validity")
+	flag.BoolVar(&remote, "remote", false, "Check remote peer cert")
 	flag.BoolVar(&customCA, "custom", false, "Validate using certool CA")
 	flag.BoolVar(&sign, "sign", false, "sign request")
+	flag.BoolVar(&csr, "csr", false, "generate csr")
 	flag.BoolVar(&genCA, "gen", false, "Generate new CA")
 	flag.BoolVar(&write, "w", false, "Write values to file")
 }
@@ -52,16 +56,26 @@ func main() {
 		os.Exit(1)
 	}
 
-	if dns != "" {
-		if sign {
-			createSignedCert()
-		} else {
-			createCSR()
+	if genCA {
+		_, err = certool.GenerateCA(scheme)
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
 		}
 	}
 
+	if csr {
+		createCSR()
+	}
+
+	if sign {
+		createSignedCert()
+	}
+
 	if verify {
-		if file == "" {
+		if remote {
+			certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", dns, port))
+		} else if file == "" {
 			fmt.Println("Please add -f [filename]")
 			os.Exit(1)
 		}
@@ -91,20 +105,30 @@ func main() {
 			}
 		}
 		fmt.Println("Certificate valid")
+		os.Exit(0)
 	}
 
-	if printCert {
-		if file == "" {
-			fmt.Println("Please add -f [filename]")
-			os.Exit(1)
-		}
-		cert, err := certool.LoadCertificate(file)
+	if remote {
+		chain, err := certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", dns, port))
 		if err != nil {
-			fmt.Println("Issue loading cert", err)
+			fmt.Println("Issue grabbing remote cert", err)
 			os.Exit(1)
 		}
-		fmt.Println(certool.HumanReadable(cert))
+		for _, c := range chain {
+			fmt.Println(certool.HumanReadable(c))
+		}
+		os.Exit(0)
 	}
+	if file == "" {
+		fmt.Println("Please add -f [filename]")
+		os.Exit(1)
+	}
+	cert, err := certool.LoadCertificate(file)
+	if err != nil {
+		fmt.Println("Issue loading cert", err)
+		os.Exit(1)
+	}
+	fmt.Println(certool.HumanReadable(cert))
 
 }
 
@@ -151,37 +175,24 @@ func createCSR() (csr *x509.CertificateRequest) {
 	}
 	return
 }
-func createSignedCert() {
-	var err error
+func createSignedCert() (err error) {
 	csr := createCSR()
-	var ca certool.CA
-	if genCA {
-		ca, err = certool.GenerateCA(scheme)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
-	} else {
-		ca, err = certool.LoadCA()
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
-		}
+	ca, err := certool.LoadCA()
+	if err != nil {
+		return
 	}
+
 	certbytes, err := ca.SignRequest(csr.Raw)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
 	cert, err := x509.ParseCertificate(certbytes)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
 	err = certool.Verify([]*x509.Certificate{ca.Cert}, cert, dns)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
 
 	if write {
@@ -189,6 +200,7 @@ func createSignedCert() {
 	} else {
 		fmt.Println(string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certbytes})))
 	}
+	return
 }
 
 func read(name string, valid []string) (val string, err error) {
