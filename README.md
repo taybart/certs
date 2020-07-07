@@ -356,7 +356,7 @@ Signature:
 
 # Todo
 
-- [ ] Validate and print remote TLS certificates [HTTP/1.1]
+- [x] ~Validate and print remote TLS certificates [HTTP/1.1]~
 
 - [ ] Validate and print remote TLS certificates [gRPC & HTTP/2]
 
