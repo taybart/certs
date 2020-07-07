@@ -137,12 +137,16 @@ func Verify(chain []*x509.Certificate, cert *x509.Certificate, dns string) (err 
 	return
 }
 
-func VerifySystemRoots(cert *x509.Certificate, dns string) (err error) {
-	opts := x509.VerifyOptions{
-		DNSName: dns,
+func VerifySystemRoots(cert *x509.Certificate, intermediateChain []*x509.Certificate, dns string) (err error) {
+	intermediates := x509.NewCertPool()
+	for _, c := range intermediateChain {
+		intermediates.AddCert(c)
 	}
-
-	if _, err = cert.Verify(opts); err != nil {
+	_, err = cert.Verify(x509.VerifyOptions{
+		DNSName:       dns,
+		Intermediates: intermediates,
+	})
+	if err != nil {
 		err = fmt.Errorf("invalid cert %w", err)
 	}
 	return

@@ -74,7 +74,30 @@ func main() {
 
 	if verify {
 		if remote {
-			certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", dns, port))
+			chain, err := certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", dns, port))
+			if err != nil {
+				fmt.Println("Issue grabbing remote cert", err)
+				os.Exit(1)
+			}
+			err = certool.Verify(chain[1:], chain[0], dns)
+			if err != nil {
+				fmt.Println("Certificate invalid", err)
+				os.Exit(1)
+			}
+			fmt.Println("Chain valid")
+			intermediate := []*x509.Certificate{}
+			if len(chain) > 2 {
+				intermediate = chain[1 : len(chain)-1]
+			}
+			err = certool.VerifySystemRoots(chain[0], intermediate, dns)
+			if err != nil {
+				fmt.Println(certool.HumanReadable(chain[0]))
+				fmt.Println("Certificate invalid", err)
+				os.Exit(1)
+			}
+			fmt.Println("System check valid")
+			os.Exit(0)
+
 		} else if file == "" {
 			fmt.Println("Please add -f [filename]")
 			os.Exit(1)
@@ -98,7 +121,7 @@ func main() {
 				os.Exit(1)
 			}
 		} else {
-			err := certool.VerifySystemRoots(cert, dns)
+			err := certool.VerifySystemRoots(cert, nil, dns)
 			if err != nil {
 				fmt.Println("Certificate invalid", err)
 				os.Exit(1)
