@@ -24,7 +24,7 @@ A tool for dealing with certificates.
 
   * [Print certificate info](#print-certificate-info)
 
-  * [Print remote certificate chain](#print-certificate-remote-certificate-chain)
+  * [Print remote certificate chain](#print-remote-certificate-chain)
 
 [Todo](#todo)
 
