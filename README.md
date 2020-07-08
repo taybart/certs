@@ -367,7 +367,7 @@ Signature:
 
 - [ ] Sign certs with yubikey
 
-- [ ] Password protect ca key
+- [x] ~Password protect ca key~
 
 - [ ] Pull CA from secret manager
 

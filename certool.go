@@ -5,14 +5,13 @@ import (
 	"crypto"
 	"crypto/x509"
 	"encoding/pem"
-	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"os"
+	"strings"
 
-	"github.com/Masterminds/sprig"
 	"github.com/journeyai/certool/scheme"
 )
 
@@ -62,13 +61,28 @@ PublicKeyAlgorithm: {{ .C.PublicKeyAlgorithm }}
 SignatureAlgorithm: {{ .C.SignatureAlgorithm }}
 
 Signature:
-{{ .C.Signature | printf "%x" | wrapWith 50 "\n"  | indent 6 }}
+{{ .C.Signature | printf "%x" | wrapsig 50 | indent 6 }}
 {{- if .C.OCSPServer }}
 OCSPServer: {{ .C.OCSPServer }}
 {{- end -}}
 `
+	funcMap := template.FuncMap{
+		"indent": func(spaces int, v string) string {
+			pad := strings.Repeat(" ", spaces)
+			return pad + strings.Replace(v, "\n", "\n"+pad, -1)
+		},
+		"wrapsig": func(width int, str string) (wrapped string) {
+			for i, c := range str {
+				if i%width == 0 && i != 0 {
+					wrapped += "\n"
+				}
+				wrapped += string(c)
+			}
+			return
+		},
+	}
+	t := template.Must(template.New("cert").Funcs(funcMap).Parse(templ))
 
-	t := template.Must(template.New("cert").Funcs(sprig.FuncMap()).Parse(templ))
 	var out bytes.Buffer
 	err := t.Execute(&out, values)
 	if err != nil {
@@ -152,30 +166,12 @@ func VerifySystemRoots(cert *x509.Certificate, intermediateChain []*x509.Certifi
 	return
 }
 
-/* func Verify(root []byte, cert *x509.Certificate, dns string) (err error) {
-	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM(root)
-	if !ok {
-		err = fmt.Errorf("asdfasdfsdf")
-		return
-	}
-	opts := x509.VerifyOptions{
-		Roots: roots,
-		// Intermediates: x509.NewCertPool(),
-		DNSName: dns,
-	}
-
-	if _, err = cert.Verify(opts); err != nil {
-		err = fmt.Errorf("invalid cert %w", err)
-	}
-	return
-} */
 func LoadCertificate(file string) (cert *x509.Certificate, err error) {
-	certbytes, err := openPEM(file)
+	certblock, err := openPEM(file)
 	if err != nil {
 		return
 	}
-	cert, err = x509.ParseCertificate(certbytes)
+	cert, err = x509.ParseCertificate(certblock.Bytes)
 	return
 }
 
@@ -218,16 +214,17 @@ func MarshalCertificateToPem(cert *x509.Certificate) (err error) {
 	pem.Encode(out, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
 	return
 }
-func openPEM(name string) ([]byte, error) {
+func openPEM(name string) (block *pem.Block, err error) {
 	certPEM, err := ioutil.ReadFile(name)
 
 	if err != nil {
 		log.Fatal("the err is: " + err.Error())
-		return nil, err
+		return
 	}
-	block, _ := pem.Decode(certPEM)
+	block, _ = pem.Decode(certPEM)
 	if block == nil {
-		return nil, errors.New("Failed to parse certificate PEM " + name)
+		err = fmt.Errorf("Failed to parse certificate PEM %s", name)
+		return
 	}
-	return block.Bytes, nil
+	return
 }

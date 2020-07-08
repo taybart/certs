@@ -1,15 +1,16 @@
 package certool
 
 import (
-	"bufio"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
+
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 type Config struct {
-	Dir        string `json:"_"`
+	Dir        string `json:"-"`
 	CAName     string `json:"caName"`
 	CAKey      string `json:"caKey"`
 	CACrt      string `json:"caCrt"`
@@ -21,7 +22,7 @@ var DefaultConfig = Config{
 	CAName:     "ca.journey",
 	CAKey:      fmt.Sprintf("%s/.config/certool/%s.key", os.Getenv("HOME"), "ca.journey"),
 	CACrt:      fmt.Sprintf("%s/.config/certool/%s.crt", os.Getenv("HOME"), "ca.journey"),
-	CAPassword: "123456",
+	CAPassword: "_",
 }
 
 var config = DefaultConfig
@@ -58,20 +59,6 @@ func LoadConfig(configLocation string) (err error) {
 		return
 	}
 	json.Unmarshal(c, &config)
-	if config.CAPassword == "" {
-		fmt.Print("Enter CA password: ")
-		reader := bufio.NewReader(os.Stdin)
-		config.CAPassword, err = reader.ReadString('\n')
-		if err != nil {
-			return
-		}
-	}
-	if config.CAPassword == DefaultConfig.CAPassword {
-		fmt.Println("[WARNING] default password used")
-	}
-	if config.CAPassword == "_" {
-		config.CAPassword = ""
-	}
 	return
 }
 func LoadConfigFromFile(location string) (err error) {
@@ -85,4 +72,21 @@ func LoadConfigFromFile(location string) (err error) {
 		fmt.Println("WARNING")
 	}
 	return
+}
+
+func (c *Config) GetCAPassword() string {
+	if c.CAPassword == "" {
+		fmt.Printf("CAPassword: ")
+		bytePassword, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+		if err != nil {
+			fmt.Println(err)
+		}
+		c.CAPassword = string(bytePassword)
+		return c.CAPassword
+	}
+
+	if c.CAPassword == "_" {
+		c.CAPassword = ""
+	}
+	return c.CAPassword
 }

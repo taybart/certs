@@ -65,11 +65,19 @@ func main() {
 	}
 
 	if csr {
-		createCSR()
+		_, err = createCSR()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
 	if sign {
-		createSignedCert()
+		err = createSignedCert()
+		if err != nil {
+			fmt.Println(err)
+			os.Exit(1)
+		}
 	}
 
 	if verify {
@@ -143,21 +151,18 @@ func main() {
 		}
 		os.Exit(0)
 	}
-	if file == "" {
-		fmt.Println("Please add -f [filename]")
-		os.Exit(1)
+	if file != "" {
+		cert, err := certool.LoadCertificate(file)
+		if err != nil {
+			fmt.Println("Issue loading cert", err)
+			os.Exit(1)
+		}
+		fmt.Println(certool.HumanReadable(cert))
 	}
-	cert, err := certool.LoadCertificate(file)
-	if err != nil {
-		fmt.Println("Issue loading cert", err)
-		os.Exit(1)
-	}
-	fmt.Println(certool.HumanReadable(cert))
 
 }
 
-func createCSR() (csr *x509.CertificateRequest) {
-	var err error
+func createCSR() (csr *x509.CertificateRequest, err error) {
 	if scheme == "" {
 		scheme, err = read("scheme", []string{"ed25519", "rsa2048", "rsa4096"})
 		if err != nil {
@@ -200,7 +205,11 @@ func createCSR() (csr *x509.CertificateRequest) {
 	return
 }
 func createSignedCert() (err error) {
-	csr := createCSR()
+	csr, err := createCSR()
+	if err != nil {
+		return
+	}
+
 	ca, err := certool.LoadCA()
 	if err != nil {
 		return

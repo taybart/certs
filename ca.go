@@ -30,7 +30,16 @@ func GenerateCA(scheme string) (ca CA, err error) {
 	if err != nil {
 		return
 	}
-	pem.Encode(out, &pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes})
+	if config.GetCAPassword() != "_" {
+		var block *pem.Block
+		block, err = x509.EncryptPEMBlock(rand.Reader, "PRIVATE KEY", keyBytes, []byte(config.GetCAPassword()), x509.PEMCipherAES256)
+		if err != nil {
+			return
+		}
+		pem.Encode(out, block)
+	} else {
+		pem.Encode(out, &pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes})
+	}
 	out.Close()
 
 	csr, err := s.GenerateCSR(config.CAName)
@@ -84,17 +93,24 @@ func LoadCA() (ca CA, err error) {
 	if err != nil {
 		return
 	}
-	sk, err := x509.ParsePKCS8PrivateKey(key)
+	keybytes := key.Bytes
+	if x509.IsEncryptedPEMBlock(key) {
+		keybytes, err = x509.DecryptPEMBlock(key, []byte(config.GetCAPassword()))
+		if err != nil {
+			return
+		}
+	}
+	sk, err := x509.ParsePKCS8PrivateKey(keybytes)
 	if err != nil {
 		return
 	}
 
-	certbytes, err := openPEM(config.CACrt)
+	certblock, err := openPEM(config.CACrt)
 	if err != nil {
 		return
 	}
 
-	cert, err := x509.ParseCertificate(certbytes)
+	cert, err := x509.ParseCertificate(certblock.Bytes)
 	if err != nil {
 		return
 	}
