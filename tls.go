@@ -6,7 +6,7 @@ import (
 )
 
 func GetPeerServerCertificateChain(dns string) (pscc []*x509.Certificate, err error) {
-	conn, err := tls.Dial("tcp", dns, &tls.Config{})
+	conn, err := tls.Dial("tcp", dns, &tls.Config{InsecureSkipVerify: true})
 	if err != nil {
 		return
 	}
