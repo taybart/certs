@@ -20,7 +20,13 @@ type CA struct {
 // BootstrapNetwork start a new Certificate authority
 func GenerateCA(scheme string) (ca CA, err error) {
 	s, err := NewScheme(scheme)
+	if err != nil {
+		return
+	}
 	sk, pk, err := s.GenerateKeys()
+	if err != nil {
+		return
+	}
 
 	out, err := os.Create(config.CAKey)
 	if err != nil {
@@ -36,13 +42,25 @@ func GenerateCA(scheme string) (ca CA, err error) {
 		if err != nil {
 			return
 		}
-		pem.Encode(out, block)
+		err = pem.Encode(out, block)
+		if err != nil {
+			return
+		}
 	} else {
-		pem.Encode(out, &pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes})
+		err = pem.Encode(out, &pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes})
+		if err != nil {
+			return
+		}
 	}
-	out.Close()
+	err = out.Close()
+	if err != nil {
+		return
+	}
 
 	csr, err := s.GenerateCSR(config.CAName)
+	if err != nil {
+		return
+	}
 
 	cert := &x509.Certificate{
 		SignatureAlgorithm: csr.SignatureAlgorithm,
@@ -78,10 +96,19 @@ func GenerateCA(scheme string) (ca CA, err error) {
 	if err != nil {
 		return
 	}
-	pem.Encode(out, &pem.Block{Type: "CERTIFICATE", Bytes: certbytes})
-	out.Close()
+	err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE", Bytes: certbytes})
+	if err != nil {
+		return
+	}
+	err = out.Close()
+	if err != nil {
+		return
+	}
 
 	cert, err = x509.ParseCertificate(certbytes)
+	if err != nil {
+		return
+	}
 
 	ca = CA{Cert: cert, sk: sk}
 	return
@@ -154,6 +181,48 @@ func (ca *CA) SignRequest(asn1Data []byte) (cert []byte, err error) {
 		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageOCSPSigning},
 	}
+	cert, err = x509.CreateCertificate(rand.Reader, template, ca.Cert, template.PublicKey, ca.sk)
+	return
+}
+
+// SignCARequest signs x509 certificate request
+func (ca *CA) SignCARequest(asn1Data []byte) (cert []byte, err error) {
+	csr, err := x509.ParseCertificateRequest(asn1Data)
+	if err != nil {
+		return
+	}
+
+	if err = csr.CheckSignature(); err != nil {
+		return
+	}
+
+	// Create template for certificate creation, uses properties from the request and root certificate.
+	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
+	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
+	if err != nil {
+		return
+	}
+	// Client Template
+	template := &x509.Certificate{
+		Signature:          csr.Signature,
+		SignatureAlgorithm: csr.SignatureAlgorithm,
+
+		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
+		PublicKey:          csr.PublicKey,
+
+		SerialNumber: serialNumber,
+		Issuer:       ca.Cert.Subject,
+		Subject:      csr.Subject,
+		DNSNames:     csr.DNSNames,
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(10, 0, 0),
+
+		IsCA:                  true,
+		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
+		BasicConstraintsValid: true,
+	}
+
 	cert, err = x509.CreateCertificate(rand.Reader, template, ca.Cert, template.PublicKey, ca.sk)
 	return
 }
