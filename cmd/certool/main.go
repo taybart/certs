@@ -14,13 +14,14 @@ import (
 
 var (
 	configLocation string
-	scheme         string
-	dns            string
-	// caKey     string
-	// caCert    string
-	file     string
-	port     string
-	customCA bool
+
+	scheme string
+	dns    string
+
+	file string
+	port string
+
+	systemCA bool
 	verify   bool
 	remote   bool
 	write    bool
@@ -33,50 +34,62 @@ func init() {
 	flag.StringVar(&configLocation, "c", certool.DefaultConfig.Dir, "Config file location")
 	flag.StringVar(&scheme, "s", "ed25519", "Cryptographic scheme for certs [ed25519, rsa2048, rsa4096]")
 	flag.StringVar(&dns, "dns", "", "DNS for certificate")
-	flag.StringVar(&port, "p", "443", "Port of remote server")
 	flag.StringVar(&file, "f", "", "Certificate file")
 
-	// flag.StringVar(&caKey, "key", "", "CA certificate key")
-	// flag.StringVar(&caCert, "crt", "", "CA certificate file")
+	flag.BoolVar(&remote, "remote", false, "Check remote peer cert")
+	flag.StringVar(&port, "p", "443", "Port of remote server")
 
 	flag.BoolVar(&verify, "verify", false, "Check cert validity")
-	flag.BoolVar(&remote, "remote", false, "Check remote peer cert")
-	flag.BoolVar(&customCA, "custom", false, "Validate using certool CA")
+	flag.BoolVar(&systemCA, "system", false, "Validate using certool CA")
+
+	flag.BoolVar(&genCA, "gen", false, "Generate new CA")
 	flag.BoolVar(&sign, "sign", false, "sign request")
 	flag.BoolVar(&csr, "csr", false, "generate csr")
-	flag.BoolVar(&genCA, "gen", false, "Generate new CA")
 	flag.BoolVar(&write, "w", false, "Write values to file")
 }
 
 func main() {
 	flag.Parse()
-	err := certool.LoadConfig(configLocation)
-	if err != nil {
+	if err := run(); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+}
+
+func run() error {
+	err := certool.LoadConfig(configLocation)
+	if err != nil {
+		return err
+	}
 
 	if genCA {
-		_, err = certool.GenerateCA(scheme)
-		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+		if certool.CAExists() {
+			reader := bufio.NewReader(os.Stdin)
+			fmt.Printf("CA has already been generated, delete and regenerate? [y/N] ")
+			val, err := reader.ReadString('\n')
+			if err != nil {
+				return err
+			}
+			if val != "y" && val != "Y" {
+				fmt.Println("Not regenerating")
+				return nil
+			}
 		}
+		_, err = certool.GenerateCA(scheme)
+		return err
 	}
 
 	if csr {
 		_, err = createCSR()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 	}
 
 	if sign {
 		err = createSignedCert()
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return err
 		}
 	}
 
@@ -84,13 +97,13 @@ func main() {
 		if remote {
 			chain, err := certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", dns, port))
 			if err != nil {
-				fmt.Println("Issue grabbing remote cert", err)
-				os.Exit(1)
+				err = fmt.Errorf("Issue grabbing remote cert %w", err)
+				return err
 			}
 			err = certool.Verify(chain[1:], chain[0], dns)
 			if err != nil {
-				fmt.Println("Certificate invalid", err)
-				os.Exit(1)
+				err = fmt.Errorf("Certificate invalid %w", err)
+				return err
 			}
 			fmt.Printf("%v\n\n", certool.HumanReadable(chain[0]))
 			fmt.Println("Remote chain valid")
@@ -101,103 +114,98 @@ func main() {
 			err = certool.VerifySystemRoots(chain[0], intermediate, dns)
 			if err != nil {
 				fmt.Println(certool.HumanReadable(chain[0]))
-				fmt.Println("Certificate invalid", err)
-				os.Exit(1)
+				err = fmt.Errorf("Certificate invalid %w", err)
+				return err
 			}
 			fmt.Println("System check valid")
-			os.Exit(0)
+			return err
 
 		} else if file == "" {
-			fmt.Println("Please add -f [filename]")
-			os.Exit(1)
+			err = fmt.Errorf("Please add -f [filename]")
+			return err
 		}
 
 		cert, err := certool.LoadCertificate(file)
 		if err != nil {
-			fmt.Println("Issue loading cert", err)
-			os.Exit(1)
+			err = fmt.Errorf("Issue loading cert %w", err)
+			return err
 		}
 		fmt.Printf("%s\n\n", certool.HumanReadable(cert))
-		if customCA {
+		if !systemCA {
 			ca, err := certool.LoadCA()
 			if err != nil {
-				fmt.Println("Issue loading certool ca", err)
-				os.Exit(1)
+				err = fmt.Errorf("Issue loading certool ca %w", err)
+				return err
 			}
 			err = certool.Verify([]*x509.Certificate{ca.Cert}, cert, dns)
 			if err != nil {
-				fmt.Println("Certificate invalid", err)
-				os.Exit(1)
+				err = fmt.Errorf("Certificate invalid %w", err)
+				return err
 			}
 		} else {
 			err := certool.VerifySystemRoots(cert, nil, dns)
 			if err != nil {
-				fmt.Println("Certificate invalid", err)
-				os.Exit(1)
+				err = fmt.Errorf("Certificate invalid %w", err)
+				return err
 			}
 		}
 		fmt.Println("Certificate valid")
-		os.Exit(0)
+		return nil
 	}
 
 	if remote {
 		chain, err := certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", dns, port))
 		if err != nil {
-			fmt.Println("Issue grabbing remote cert", err)
-			os.Exit(1)
+			err = fmt.Errorf("Issue grabbing remote cert %w", err)
+			return err
 		}
 		for _, c := range chain {
 			fmt.Println(certool.HumanReadable(c))
 		}
-		os.Exit(0)
+		return nil
 	}
 	if file != "" {
 		cert, err := certool.LoadCertificate(file)
 		if err != nil {
-			fmt.Println("Issue loading cert", err)
-			os.Exit(1)
+			err = fmt.Errorf("Issue loading cert %w", err)
+			return err
 		}
 		fmt.Println(certool.HumanReadable(cert))
 	}
-
+	return nil
 }
 
 func createCSR() (csr *x509.CertificateRequest, err error) {
 	if scheme == "" {
 		scheme, err = read("scheme", []string{"ed25519", "rsa2048", "rsa4096"})
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return
 		}
 	}
 	s, err := certool.NewScheme(scheme)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
 	sk, _, err := s.GenerateKeys()
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
 	csr, err = s.GenerateCSR(dns)
 	if err != nil {
-		fmt.Println(err)
-		os.Exit(1)
+		return
 	}
 
 	if write {
 		err = certool.MarshalCSRToPem(csr.Raw)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return
 		}
-		s.MarshalPrivateKeyToPem(dns)
+		err = s.MarshalPrivateKeyToPem(dns)
 	} else {
-		skbytes, err := x509.MarshalPKCS8PrivateKey(sk)
+		var skbytes []byte
+		skbytes, err = x509.MarshalPKCS8PrivateKey(sk)
 		if err != nil {
-			fmt.Println(err)
-			os.Exit(1)
+			return
 		}
 		fmt.Println(string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: skbytes})))
 		fmt.Println(string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw})))
@@ -229,7 +237,10 @@ func createSignedCert() (err error) {
 	}
 
 	if write {
-		certool.MarshalCertificateToPem(cert)
+		err = certool.MarshalCertificateToPem(cert)
+		if err != nil {
+			return
+		}
 	} else {
 		fmt.Println(string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: certbytes})))
 	}
