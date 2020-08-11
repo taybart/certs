@@ -90,8 +90,8 @@ func (e Ed25519Scheme) MarshalCSRToPem(csr *x509.CertificateRequest) (err error)
 	if err != nil {
 		return
 	}
-	pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrbytes})
-	return
+
+	return pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrbytes})
 }
 
 func (e Ed25519Scheme) MarshalPrivateKeyToPem(dns string) (err error) {
@@ -113,6 +113,9 @@ func (e Ed25519Scheme) MarshalPrivateKeyToPem(dns string) (err error) {
 	if err != nil {
 		return
 	}
-	pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: skBytes})
+	err = pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: skBytes})
+	if err != nil {
+		return
+	}
 	return keyOut.Close()
 }

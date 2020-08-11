@@ -92,7 +92,7 @@ func (r RSAScheme) MarshalCSRToPem(csr *x509.CertificateRequest) (err error) {
 		return
 	}
 
-	pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrbytes})
+	err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrbytes})
 	return
 }
 
@@ -115,6 +115,9 @@ func (r RSAScheme) MarshalPrivateKeyToPem(dns string) (err error) {
 	if err != nil {
 		return
 	}
-	pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: skBytes})
+	err = pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: skBytes})
+	if err != nil {
+		return
+	}
 	return keyOut.Close()
 }

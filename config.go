@@ -44,7 +44,7 @@ func LoadConfig(configLocation string) (err error) {
 			return
 		}
 
-		err = ioutil.WriteFile(fmt.Sprintf("%s/config.json", config.Dir), file, 0644)
+		err = ioutil.WriteFile(fmt.Sprintf("%s/config.json", config.Dir), file, 0600)
 		if err != nil {
 			err = fmt.Errorf("issue writing config file %w", err)
 			return
@@ -58,7 +58,7 @@ func LoadConfig(configLocation string) (err error) {
 		err = fmt.Errorf("issue reading config %w", err)
 		return
 	}
-	json.Unmarshal(c, &config)
+	err = json.Unmarshal(c, &config)
 	return
 }
 func LoadConfigFromFile(location string) (err error) {
@@ -67,7 +67,11 @@ func LoadConfigFromFile(location string) (err error) {
 		err = fmt.Errorf("issue reading config %w", err)
 		return
 	}
-	json.Unmarshal(c, &config)
+	err = json.Unmarshal(c, &config)
+	if err != nil {
+		err = fmt.Errorf("issue marshalling config %w", err)
+		return
+	}
 	if config.CAPassword == DefaultConfig.CAPassword {
 		fmt.Println("WARNING")
 	}
