@@ -10,19 +10,17 @@ import (
 )
 
 type Config struct {
-	Dir        string `json:"-"`
-	CAName     string `json:"caName"`
-	CAKey      string `json:"caKey"`
-	CACrt      string `json:"caCrt"`
-	CAPassword string `json:"caPassword"`
+	Dir    string `json:"-"`
+	CAName string `json:"caName"`
+	CAKey  string `json:"caKey"`
+	CACrt  string `json:"caCrt"`
 }
 
 var DefaultConfig = Config{
-	Dir:        fmt.Sprintf("%s/.config/certool", os.Getenv("HOME")),
-	CAName:     "ca.journey",
-	CAKey:      fmt.Sprintf("%s/.config/certool/%s.key", os.Getenv("HOME"), "ca.journey"),
-	CACrt:      fmt.Sprintf("%s/.config/certool/%s.crt", os.Getenv("HOME"), "ca.journey"),
-	CAPassword: "_",
+	Dir:    fmt.Sprintf("%s/.config/certool", os.Getenv("HOME")),
+	CAName: "ca.journey",
+	CAKey:  fmt.Sprintf("%s/.config/certool/%s.key", os.Getenv("HOME"), "ca.journey"),
+	CACrt:  fmt.Sprintf("%s/.config/certool/%s.crt", os.Getenv("HOME"), "ca.journey"),
 }
 
 var config = DefaultConfig
@@ -72,25 +70,17 @@ func LoadConfigFromFile(location string) (err error) {
 		err = fmt.Errorf("issue marshalling config %w", err)
 		return
 	}
-	if config.CAPassword == DefaultConfig.CAPassword {
-		fmt.Println("WARNING")
-	}
 	return
 }
 
 func (c *Config) GetCAPassword() string {
-	if c.CAPassword == "" {
-		fmt.Printf("CAPassword: ")
-		bytePassword, err := terminal.ReadPassword(int(os.Stdin.Fd()))
-		if err != nil {
-			fmt.Println(err)
-		}
-		c.CAPassword = string(bytePassword)
-		return c.CAPassword
+	fmt.Printf("CA Password: ")
+	bytePassword, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	if err != nil {
+		fmt.Println(err)
 	}
 
-	if c.CAPassword == "_" {
-		c.CAPassword = ""
-	}
-	return c.CAPassword
+	fmt.Printf("\n")
+	return string(bytePassword)
+
 }

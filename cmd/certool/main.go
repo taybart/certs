@@ -6,7 +6,9 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"os"
+	"regexp"
 	"strings"
 
 	"github.com/journeyai/certool"
@@ -16,35 +18,37 @@ var (
 	configLocation string
 
 	scheme string
-	dns    string
-
-	file string
-	port string
 
 	systemCA bool
-	verify   bool
-	remote   bool
-	write    bool
-	sign     bool
-	csr      bool
-	genCA    bool
+	verify   string
+	output   string
+
+	write bool
+
+	csrhost string
+
+	genCA  bool
+	signCA bool
+	sign   bool
+	file   string
 )
 
 func init() {
 	flag.StringVar(&configLocation, "c", certool.DefaultConfig.Dir, "Config file location")
-	flag.StringVar(&scheme, "s", "ed25519", "Cryptographic scheme for certs [ed25519, rsa2048, rsa4096]")
-	flag.StringVar(&dns, "dns", "", "DNS for certificate")
-	flag.StringVar(&file, "f", "", "Certificate file")
+	flag.StringVar(&scheme, "scheme", "ed25519", "Cryptographic scheme for certs [ed25519, rsa2048, rsa4096]")
 
-	flag.BoolVar(&remote, "remote", false, "Check remote peer cert")
-	flag.StringVar(&port, "p", "443", "Port of remote server")
-
-	flag.BoolVar(&verify, "verify", false, "Check cert validity")
+	flag.StringVar(&verify, "verify", "", "Check cert validity")
 	flag.BoolVar(&systemCA, "system", false, "Validate using certool CA")
 
+	flag.StringVar(&output, "p", "", "Print certificate contents")
+
 	flag.BoolVar(&genCA, "gen", false, "Generate new CA")
-	flag.BoolVar(&sign, "sign", false, "sign request")
-	flag.BoolVar(&csr, "csr", false, "generate csr")
+	flag.BoolVar(&signCA, "signca", false, "Sign request as CA")
+	flag.BoolVar(&sign, "sign", false, "Sign request")
+	flag.StringVar(&file, "f", "", "File to sign")
+
+	flag.StringVar(&csrhost, "csr", "", "Generate CSR")
+
 	flag.BoolVar(&write, "w", false, "Write values to file")
 }
 
@@ -79,82 +83,127 @@ func run() error {
 		return err
 	}
 
-	if csr {
+	if csrhost != "" {
 		_, err = createCSR()
-		if err != nil {
-			return err
-		}
+		return err
 	}
 
-	if sign {
-		err = createSignedCert()
-		if err != nil {
-			return err
-		}
+	if sign || signCA {
+		err = signRequest()
+		return err
 	}
 
-	if verify {
-		if remote {
-			chain, err := certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", dns, port))
+	if verify != "" {
+		if isPath(verify) {
+			cert, err := certool.LoadCertificate(verify)
 			if err != nil {
-				err = fmt.Errorf("Issue grabbing remote cert %w", err)
+				err = fmt.Errorf("Issue loading cert %w", err)
 				return err
 			}
-			err = certool.Verify(chain[1:], chain[0], dns)
-			if err != nil {
-				err = fmt.Errorf("Certificate invalid %w", err)
-				return err
-			}
-			fmt.Printf("%v\n\n", certool.HumanReadable(chain[0]))
-			fmt.Println("Remote chain valid")
-			intermediate := []*x509.Certificate{}
-			if len(chain) > 2 {
-				intermediate = chain[1 : len(chain)-1]
-			}
-			err = certool.VerifySystemRoots(chain[0], intermediate, dns)
-			if err != nil {
-				fmt.Println(certool.HumanReadable(chain[0]))
-				err = fmt.Errorf("Certificate invalid %w", err)
-				return err
-			}
-			fmt.Println("System check valid")
-			return err
+			fmt.Printf("%s\n\n", certool.HumanReadable(cert))
 
-		} else if file == "" {
-			err = fmt.Errorf("Please add -f [filename]")
-			return err
-		}
+			var dns string
+			if len(cert.DNSNames) > 0 {
+				dns = cert.DNSNames[0] // TODO pick which name to test
+			} else if cert.Subject.CommonName != "" {
+				dns = cert.Subject.CommonName
+				fmt.Println("WARNING: Using common name for verification, this is not recommended")
+			} else {
+				return fmt.Errorf("No dns detected in cert")
+			}
 
-		cert, err := certool.LoadCertificate(file)
-		if err != nil {
-			err = fmt.Errorf("Issue loading cert %w", err)
-			return err
-		}
-		fmt.Printf("%s\n\n", certool.HumanReadable(cert))
-		if !systemCA {
+			if systemCA {
+				err := certool.VerifySystemRoots(cert, nil, cert.DNSNames[0])
+				if err != nil {
+					err = fmt.Errorf("Certificate invalid %w", err)
+					return err
+				}
+				fmt.Println("Certificate valid")
+				return nil
+			}
+
 			ca, err := certool.LoadCA()
 			if err != nil {
 				err = fmt.Errorf("Issue loading certool ca %w", err)
 				return err
 			}
+
 			err = certool.Verify([]*x509.Certificate{ca.Cert}, cert, dns)
 			if err != nil {
 				err = fmt.Errorf("Certificate invalid %w", err)
 				return err
 			}
-		} else {
-			err := certool.VerifySystemRoots(cert, nil, dns)
+			fmt.Println("Certificate valid")
+			return nil
+		}
+
+		re := regexp.MustCompile(`([[:alnum:]\.]+):([[:digit:]]+)`)
+		matches := re.FindAllStringSubmatch(verify, -1)
+		if err != nil || len(matches) == 0 {
+			return fmt.Errorf("Issue parsing remote dns to check")
+		}
+		host := matches[0][1]
+		port := matches[0][2]
+		chain, err := certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", host, port))
+		if err != nil {
+			err = fmt.Errorf("Issue grabbing remote cert %w", err)
+			return err
+		}
+
+		fmt.Println(host)
+		err = certool.Verify(chain[1:], chain[0], host)
+		if err != nil {
+			err = fmt.Errorf("Certificate chain invalid %w", err)
+			return err
+		}
+
+		fmt.Printf("%v\n\n", certool.HumanReadable(chain[0]))
+		fmt.Println("Remote chain valid")
+
+		if systemCA {
+			err = certool.VerifySystemRoots(chain[0], chain[1:], host)
 			if err != nil {
 				err = fmt.Errorf("Certificate invalid %w", err)
 				return err
 			}
+			fmt.Println("System check valid")
+			return nil
+		}
+
+		ca, err := certool.LoadCA()
+		if err != nil {
+			err = fmt.Errorf("Issue loading certool ca %w", err)
+			return err
+		}
+
+		err = certool.Verify([]*x509.Certificate{ca.Cert}, chain[0], host)
+		if err != nil {
+			err = fmt.Errorf("Certificate invalid %w", err)
+			return err
 		}
 		fmt.Println("Certificate valid")
 		return nil
 	}
 
-	if remote {
-		chain, err := certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", dns, port))
+	if output != "" {
+		if isPath(output) {
+			cert, err := certool.LoadCertificate(output)
+			if err != nil {
+				err = fmt.Errorf("Issue loading cert %w", err)
+				return err
+			}
+			fmt.Println(certool.HumanReadable(cert))
+			return nil
+		}
+
+		re := regexp.MustCompile(`([[:alnum:]\.]+):([[:digit:]]+)`)
+		matches := re.FindAllStringSubmatch(output, -1)
+		if err != nil || len(matches) == 0 {
+			return fmt.Errorf("Issue parsing remote dns to check")
+		}
+		host := matches[0][1]
+		port := matches[0][2]
+		chain, err := certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", host, port))
 		if err != nil {
 			err = fmt.Errorf("Issue grabbing remote cert %w", err)
 			return err
@@ -164,18 +213,15 @@ func run() error {
 		}
 		return nil
 	}
-	if file != "" {
-		cert, err := certool.LoadCertificate(file)
-		if err != nil {
-			err = fmt.Errorf("Issue loading cert %w", err)
-			return err
-		}
-		fmt.Println(certool.HumanReadable(cert))
-	}
+	flag.Usage()
 	return nil
 }
 
 func createCSR() (csr *x509.CertificateRequest, err error) {
+	if csrhost == "" {
+		err = fmt.Errorf("No host specified for csr")
+		return
+	}
 	if scheme == "" {
 		scheme, err = read("scheme", []string{"ed25519", "rsa2048", "rsa4096"})
 		if err != nil {
@@ -190,7 +236,7 @@ func createCSR() (csr *x509.CertificateRequest, err error) {
 	if err != nil {
 		return
 	}
-	csr, err = s.GenerateCSR(dns)
+	csr, err = s.GenerateCSR(csrhost)
 	if err != nil {
 		return
 	}
@@ -200,7 +246,7 @@ func createCSR() (csr *x509.CertificateRequest, err error) {
 		if err != nil {
 			return
 		}
-		err = s.MarshalPrivateKeyToPem(dns)
+		err = s.MarshalPrivateKeyToPem(csrhost)
 	} else {
 		var skbytes []byte
 		skbytes, err = x509.MarshalPKCS8PrivateKey(sk)
@@ -212,26 +258,55 @@ func createCSR() (csr *x509.CertificateRequest, err error) {
 	}
 	return
 }
-func createSignedCert() (err error) {
-	csr, err := createCSR()
-	if err != nil {
-		return
+
+func signRequest() (err error) {
+	var csr *x509.CertificateRequest
+	if file == "" {
+		csr, err = createCSR()
+		if err != nil {
+			return
+		}
+	} else {
+		var b []byte
+		b, err = ioutil.ReadFile(file)
+		if err != nil {
+			return
+		}
+		block, _ := pem.Decode(b)
+		csr, err = x509.ParseCertificateRequest(block.Bytes)
+		if err != nil {
+			return
+		}
 	}
 
 	ca, err := certool.LoadCA()
 	if err != nil {
 		return
 	}
-
-	certbytes, err := ca.SignRequest(csr.Raw)
-	if err != nil {
-		return
+	var certbytes []byte
+	if signCA {
+		certbytes, err = ca.SignCARequest(csr.Raw)
+		if err != nil {
+			return
+		}
 	}
+
+	if sign {
+		certbytes, err = ca.SignRequest(csr.Raw)
+		if err != nil {
+			return
+		}
+	}
+
+	if certbytes == nil {
+		return fmt.Errorf("issue signing request")
+	}
+
 	cert, err := x509.ParseCertificate(certbytes)
 	if err != nil {
 		return
 	}
-	err = certool.Verify([]*x509.Certificate{ca.Cert}, cert, dns)
+	err = certool.Verify([]*x509.Certificate{ca.Cert}, cert, csrhost)
 	if err != nil {
 		return
 	}
@@ -256,4 +331,10 @@ func read(name string, valid []string) (val string, err error) {
 	}
 	val = strings.TrimSuffix(val, "\n")
 	return
+}
+
+// isValidUrl tests a string to determine if it is a well-structured url or not.
+func isPath(toTest string) bool {
+	_, err := os.Stat(toTest)
+	return err == nil
 }

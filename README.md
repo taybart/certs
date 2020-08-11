@@ -46,7 +46,6 @@ Using `""` as the key will prompt for the password during the command, this is t
  "caName": "ca.journey",
  "caKey": "/home/user/.config/certool/ca.journey.key",
  "caCrt": "/home/user/.config/certool/ca.journey.crt",
- "caPassword": "hunter2"
 }
 ```
 
@@ -82,19 +81,19 @@ Usage of certool:
 ## Generating a Certificate Authority
 
 ```
-$ certool -s ed25519 -gen
+$ certool -gen
 ```
 
 ## Create CSR
 
 ```
-$ certool -w -s ed25519 -dns test.denver.journey
+$ certool -w -csr test.denver.journey
 ```
 
 ## Create and sign request
 
 ```
-$ certool -w -s ed25519 -sign -dns test.denver.journey
+$ certool -w -sign -f ./test.denver.journey.csr
 ```
 
 ## Validate certificate
@@ -102,7 +101,7 @@ $ certool -w -s ed25519 -sign -dns test.denver.journey
 **System roots**
 
 ```
-$ certool -verify -f ./test.denver.journey.crt
+$ certool -verify -system ./test.denver.journey.crt
 DNSNames: [test.denver.journey]
 SerialNumber: 33402702424818636287940487352184976883
 
@@ -132,7 +131,7 @@ exit status 1
 **Certool CA**
 
 ```
-$ certool -verify -custom -f ./test.denver.journey.crt
+$ certool -verify ./test.denver.journey.crt
 DNSNames: [test.denver.journey]
 SerialNumber: 33402702424818636287940487352184976883
 
@@ -163,7 +162,7 @@ Certificate valid
 **System roots**
 
 ```
-$ certool -verify -remote -dns example.com
+$ certool -verify example.com:443
 DNSNames: [www.example.org example.com example.edu example.net example.org www.example.com www.example.edu www.example.net]
 SerialNumber: 21020869104500376438182461249190639870
 
@@ -204,7 +203,7 @@ System check valid
 Removing `-w` will output results to stdout.
 
 ```
-$ certool -s ed25519 -sign -dns test.denver.journey
+$ certool -sign ./test.denver.journey.csr
 -----BEGIN PRIVATE KEY-----
 MC4CAQAwBQYDK2VwBCIEIJPb+/pcWV/jbB0UBk6HpDhXVjTzm0ltnbefPxQmfrqi
 -----END PRIVATE KEY-----
@@ -235,8 +234,8 @@ MYQBgNVqhkgGEUFIkg5eVpBIHB5x38MLAw==
 ## Print certificate info
 
 ```
-$ certool -dns test.denver.journey -sign -w
-$ certool -p -f test.denver.journey.crt
+$ certool -sign test.denver.journey -w
+$ certool -output ./test.denver.journey.crt
 DNSNames: [test.denver.journey]
 SerialNumber: 33402702424818636287940487352184976883
 
@@ -263,7 +262,7 @@ Signature:
 ## Print remote certificate chain
 
 ```
-$ certool -remote -dns example.com
+$ certool -remote example.com:443
 DNSNames: [www.example.org example.com example.edu example.net example.org www.example.com www.example.edu www.example.net]
 SerialNumber: 21020869104500376438182461249190639870
 
