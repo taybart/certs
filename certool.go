@@ -11,9 +11,15 @@ import (
 	"log"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/journeyai/certool/scheme"
 )
+
+func CAExists() bool {
+	_, err := os.Stat(config.CAKey)
+	return err == nil
+}
 
 func NewScheme(s string) (sch scheme.Scheme, err error) {
 	switch s {
@@ -42,6 +48,7 @@ func HumanReadable(cert *x509.Certificate) string {
 	}
 
 	templ := `DNSNames: {{ .C.DNSNames }}
+Valid: {{ .C.NotBefore | formattime }} - {{ .C.NotAfter | formattime }}
 SerialNumber: {{ .C.SerialNumber }}
 {{ if .C.IsCA }}
 Certificate is a CA
@@ -79,6 +86,9 @@ OCSPServer: {{ .C.OCSPServer }}
 				wrapped += string(c)
 			}
 			return
+		},
+		"formattime": func(date time.Time) string {
+			return date.Format("Jan 2, 2006")
 		},
 	}
 	t := template.Must(template.New("cert").Funcs(funcMap).Parse(templ))
@@ -188,7 +198,10 @@ func MarshalPrivateKeyToPem(sk crypto.PrivateKey, name string) (err error) {
 	if err != nil {
 		return
 	}
-	pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: skBytes})
+	err = pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: skBytes})
+	if err != nil {
+		return
+	}
 	return keyOut.Close()
 }
 
@@ -202,7 +215,7 @@ func MarshalCSRToPem(csrbytes []byte) (err error) {
 	if err != nil {
 		return
 	}
-	pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrbytes})
+	err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrbytes})
 	return
 }
 
@@ -211,9 +224,10 @@ func MarshalCertificateToPem(cert *x509.Certificate) (err error) {
 	if err != nil {
 		return
 	}
-	pem.Encode(out, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+	err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
 	return
 }
+
 func openPEM(name string) (block *pem.Block, err error) {
 	certPEM, err := ioutil.ReadFile(name)
 
