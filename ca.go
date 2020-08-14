@@ -181,7 +181,7 @@ func (ca *CA) SignRequest(asn1Data []byte) (cert []byte, err error) {
 		NotAfter:     time.Now().Add(time.Hour * 24 * 365),
 
 		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
 	cert, err = x509.CreateCertificate(rand.Reader, template, ca.Cert, template.PublicKey, ca.sk)
 	return
