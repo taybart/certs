@@ -78,13 +78,15 @@ func GenerateCA(scheme string) (ca CA, err error) {
 			StreetAddress:      []string{"1999 Broadway St"},
 			PostalCode:         []string{"80202"},
 		},
-		DNSNames:              []string{config.CAName},
-		NotBefore:             time.Now(),
-		NotAfter:              time.Now().AddDate(10, 0, 0),
+		DNSNames:  []string{config.CAName},
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().AddDate(10, 0, 0),
+
 		IsCA:                  true,
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
+
+		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
 
 	certbytes, err := x509.CreateCertificate(rand.Reader, cert, cert, pk, sk)
@@ -179,7 +181,7 @@ func (ca *CA) SignRequest(asn1Data []byte) (cert []byte, err error) {
 		NotAfter:     time.Now().Add(time.Hour * 24 * 365),
 
 		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
-		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageOCSPSigning},
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageServerAuth},
 	}
 	cert, err = x509.CreateCertificate(rand.Reader, template, ca.Cert, template.PublicKey, ca.sk)
 	return
@@ -214,13 +216,15 @@ func (ca *CA) SignCARequest(asn1Data []byte) (cert []byte, err error) {
 		Issuer:       ca.Cert.Subject,
 		Subject:      csr.Subject,
 		DNSNames:     csr.DNSNames,
-		NotBefore:    time.Now(),
-		NotAfter:     time.Now().AddDate(10, 0, 0),
+
+		NotBefore: time.Now(),
+		NotAfter:  time.Now().AddDate(10, 0, 0),
 
 		IsCA:                  true,
-		KeyUsage:              x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
-		ExtKeyUsage:           []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 		BasicConstraintsValid: true,
+
+		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageCertSign,
+		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth, x509.ExtKeyUsageOCSPSigning},
 	}
 
 	cert, err = x509.CreateCertificate(rand.Reader, template, ca.Cert, template.PublicKey, ca.sk)

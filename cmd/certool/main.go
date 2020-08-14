@@ -306,6 +306,7 @@ func signRequest() (err error) {
 	if err != nil {
 		return
 	}
+
 	err = certool.Verify([]*x509.Certificate{ca.Cert}, cert, csrhost)
 	if err != nil {
 		return
