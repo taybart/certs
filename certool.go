@@ -12,8 +12,6 @@ import (
 	"os"
 	"strings"
 	"time"
-
-	"github.com/journeyai/certool/scheme"
 )
 
 func CAExists() bool {
@@ -21,19 +19,6 @@ func CAExists() bool {
 	return err == nil
 }
 
-func NewScheme(s string) (sch scheme.Scheme, err error) {
-	switch s {
-	case "ed25519":
-		sch = scheme.NewEd25519Scheme(256)
-	case "rsa", "rsa2048":
-		sch = scheme.NewRSAScheme(2048)
-	case "rsa4096":
-		sch = scheme.NewRSAScheme(4096)
-	default:
-		err = fmt.Errorf("unknown scheme %s", sch)
-	}
-	return
-}
 func HumanReadable(cert *x509.Certificate) string {
 	keyusages := getKeyUsage(cert)
 	extkeyusages := getExtKeyUsage(cert)
@@ -205,17 +190,24 @@ func MarshalPrivateKeyToPem(sk crypto.PrivateKey, name string) (err error) {
 	return keyOut.Close()
 }
 
-func MarshalCSRToPem(csrbytes []byte) (err error) {
-	csr, err := x509.ParseCertificateRequest(csrbytes)
+func WritePemToFile(name string, block pem.Block) (err error) {
+	keyOut, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		err = fmt.Errorf("issue creating csr %w", err)
 		return
 	}
+	err = pem.Encode(keyOut, &block)
+	if err != nil {
+		return
+	}
+	return keyOut.Close()
+}
+
+func MarshalCSRToPem(csr *x509.CertificateRequest) (err error) {
 	out, err := os.OpenFile(csr.DNSNames[0]+".csr", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return
 	}
-	err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrbytes})
+	err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw})
 	return
 }
 

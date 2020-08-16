@@ -9,6 +9,8 @@ import (
 	"math/big"
 	"os"
 	"time"
+
+	"github.com/journeyai/certool/scheme"
 )
 
 // CA Certificate Authority
@@ -18,8 +20,8 @@ type CA struct {
 }
 
 // BootstrapNetwork start a new Certificate authority
-func GenerateCA(scheme string) (ca CA, err error) {
-	s, err := NewScheme(scheme)
+func GenerateCA(sch string) (ca CA, err error) {
+	s, err := scheme.NewScheme(sch)
 	if err != nil {
 		return
 	}
@@ -32,13 +34,10 @@ func GenerateCA(scheme string) (ca CA, err error) {
 	if err != nil {
 		return
 	}
-	keyBytes, err := x509.MarshalPKCS8PrivateKey(sk)
-	if err != nil {
-		return
-	}
+	skPem, err := s.PrivateKeyToPem()
 	if config.GetCAPassword() != "_" {
 		var block *pem.Block
-		block, err = x509.EncryptPEMBlock(rand.Reader, "PRIVATE KEY", keyBytes, []byte(config.GetCAPassword()), x509.PEMCipherAES256)
+		block, err = x509.EncryptPEMBlock(rand.Reader, skPem.Type, skPem.Bytes, []byte(config.GetCAPassword()), x509.PEMCipherAES256)
 		if err != nil {
 			return
 		}
@@ -47,7 +46,7 @@ func GenerateCA(scheme string) (ca CA, err error) {
 			return
 		}
 	} else {
-		err = pem.Encode(out, &pem.Block{Type: "PRIVATE KEY", Bytes: keyBytes})
+		err = pem.Encode(out, &skPem)
 		if err != nil {
 			return
 		}
@@ -57,7 +56,7 @@ func GenerateCA(scheme string) (ca CA, err error) {
 		return
 	}
 
-	csr, err := s.GenerateCSR(config.CAName)
+	_, csr, err := s.GenerateDefaultCSR(config.CAName)
 	if err != nil {
 		return
 	}

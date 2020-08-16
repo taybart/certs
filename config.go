@@ -14,6 +14,7 @@ type Config struct {
 	CAName string `json:"caName"`
 	CAKey  string `json:"caKey"`
 	CACrt  string `json:"caCrt"`
+	Scheme string `json:"scheme"`
 }
 
 var DefaultConfig = Config{
@@ -21,9 +22,26 @@ var DefaultConfig = Config{
 	CAName: "ca.journey",
 	CAKey:  fmt.Sprintf("%s/.config/certool/%s.key", os.Getenv("HOME"), "ca.journey"),
 	CACrt:  fmt.Sprintf("%s/.config/certool/%s.crt", os.Getenv("HOME"), "ca.journey"),
+	Scheme: "ed25519",
 }
 
 var config = DefaultConfig
+
+func (c Config) Save() (err error) {
+	var file []byte
+	file, err = json.MarshalIndent(c, "", " ")
+	if err != nil {
+		err = fmt.Errorf("issue marshalling config file %w", err)
+		return
+	}
+
+	err = ioutil.WriteFile(fmt.Sprintf("%s/config.json", c.Dir), file, 0600)
+	if err != nil {
+		err = fmt.Errorf("issue writing config file %w", err)
+		return
+	}
+	return
+}
 
 func LoadConfig(configLocation string) (err error) {
 	config.Dir = configLocation
@@ -35,19 +53,7 @@ func LoadConfig(configLocation string) (err error) {
 		}
 	}
 	if _, err = os.Stat(fmt.Sprintf("%s/config.json", config.Dir)); os.IsNotExist(err) {
-		var file []byte
-		file, err = json.MarshalIndent(config, "", " ")
-		if err != nil {
-			err = fmt.Errorf("issue marshalling config file %w", err)
-			return
-		}
-
-		err = ioutil.WriteFile(fmt.Sprintf("%s/config.json", config.Dir), file, 0600)
-		if err != nil {
-			err = fmt.Errorf("issue writing config file %w", err)
-			return
-		}
-		fmt.Println("[WARNING] default password used")
+		config.Save()
 		return
 	}
 
@@ -74,7 +80,7 @@ func LoadConfigFromFile(location string) (err error) {
 }
 
 func (c *Config) GetCAPassword() string {
-	fmt.Printf("CA Password: ")
+	fmt.Printf("CA Password (hit enter if unencrypted)\n-> ")
 	bytePassword, err := terminal.ReadPassword(int(os.Stdin.Fd()))
 	if err != nil {
 		fmt.Println(err)

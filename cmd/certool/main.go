@@ -12,12 +12,13 @@ import (
 	"strings"
 
 	"github.com/journeyai/certool"
+	"github.com/journeyai/certool/scheme"
 )
 
 var (
 	configLocation string
 
-	scheme string
+	sch string
 
 	systemCA bool
 	verify   string
@@ -35,7 +36,7 @@ var (
 
 func init() {
 	flag.StringVar(&configLocation, "c", certool.DefaultConfig.Dir, "Config file location")
-	flag.StringVar(&scheme, "scheme", "ed25519", "Cryptographic scheme for certs [ed25519, rsa2048, rsa4096]")
+	flag.StringVar(&sch, "scheme", "ed25519", "Cryptographic scheme for certs [ed25519, ecdsa{256, 384, 512}, rsa{2048, 4096}]")
 
 	flag.StringVar(&verify, "verify", "", "Check cert validity")
 	flag.BoolVar(&systemCA, "system", false, "Validate using certool CA")
@@ -79,7 +80,7 @@ func run() error {
 				return nil
 			}
 		}
-		_, err = certool.GenerateCA(scheme)
+		_, err = certool.GenerateCA(sch)
 		return err
 	}
 
@@ -222,39 +223,43 @@ func createCSR() (csr *x509.CertificateRequest, err error) {
 		err = fmt.Errorf("No host specified for csr")
 		return
 	}
-	if scheme == "" {
-		scheme, err = read("scheme", []string{"ed25519", "rsa2048", "rsa4096"})
+
+	var skPem pem.Block
+	if isPath(csrhost) {
+		skPem, csr, err = scheme.CSRFromFile(csrhost)
 		if err != nil {
 			return
 		}
-	}
-	s, err := certool.NewScheme(scheme)
-	if err != nil {
-		return
-	}
-	sk, _, err := s.GenerateKeys()
-	if err != nil {
-		return
-	}
-	csr, err = s.GenerateCSR(csrhost)
-	if err != nil {
-		return
+	} else {
+		if sch == "" {
+			sch, err = read("scheme", []string{"ed25519", "ecdsa{256, 384, 512}", "rsa{2048, 4096}"})
+			if err != nil {
+				return
+			}
+		}
+		var s scheme.Scheme
+		s, err = scheme.NewScheme(sch)
+		if err != nil {
+			return
+		}
+		skPem, csr, err = s.GenerateDefaultCSR(csrhost)
+		if err != nil {
+			return
+		}
 	}
 
 	if write {
-		err = certool.MarshalCSRToPem(csr.Raw)
+		err = certool.MarshalCSRToPem(csr)
 		if err != nil {
 			return
 		}
-		err = s.MarshalPrivateKeyToPem(csrhost)
+		certool.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
 	} else {
-		var skbytes []byte
-		skbytes, err = x509.MarshalPKCS8PrivateKey(sk)
-		if err != nil {
-			return
-		}
-		fmt.Println(string(pem.EncodeToMemory(&pem.Block{Type: "PRIVATE KEY", Bytes: skbytes})))
-		fmt.Println(string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw})))
+		fmt.Println(string(pem.EncodeToMemory(&skPem)))
+		fmt.Println(string(pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE REQUEST",
+			Bytes: csr.Raw,
+		})))
 	}
 	return
 }

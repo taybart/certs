@@ -37,7 +37,39 @@ func (r *RSAScheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey, e
 	return rsask, &rsask.PublicKey, nil
 }
 
-func (r *RSAScheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, err error) {
+func (r *RSAScheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.Block, err error) {
+	if r.sk == nil {
+		_, _, err = r.GenerateKeys()
+		if err != nil {
+			err = fmt.Errorf("issue generating keys for scheme %s %w", r.String(), err)
+			return
+		}
+	}
+
+	csr.SignatureAlgorithm = x509.SHA256WithRSA
+	csr.PublicKeyAlgorithm = x509.RSA
+	csr.PublicKey = r.pk
+
+	csrbytes, err := x509.CreateCertificateRequest(rand.Reader, csr, r.sk)
+	if err != nil {
+		err = fmt.Errorf("issue creating csr %w", err)
+		return
+	}
+
+	newcsr, err := x509.ParseCertificateRequest(csrbytes)
+	if err != nil {
+		return
+	}
+	*csr = *newcsr
+
+	skPem, err = r.PrivateKeyToPem()
+	if err != nil {
+		return
+	}
+	return
+}
+
+func (r *RSAScheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509.CertificateRequest, err error) {
 	sk, pk, err := r.GenerateKeys()
 	if err != nil {
 		err = fmt.Errorf("issue generating keys for scheme %s %w", r.String(), err)
@@ -69,34 +101,15 @@ func (r *RSAScheme) GenerateCSR(dns string) (csr *x509.CertificateRequest, err e
 		err = fmt.Errorf("issue parsing csr %w", err)
 		return
 	}
-	return
-}
 
-func (r RSAScheme) MarshalCSRToPem(csr *x509.CertificateRequest) (err error) {
-	if r.sk == nil {
-		err = fmt.Errorf("private key is missing from scheme")
-		return
-	}
-	if _, ok := (r.sk).(*rsa.PrivateKey); !ok {
-		err = fmt.Errorf("issue with private key format")
-		return
-	}
-
-	csrbytes, err := x509.CreateCertificateRequest(rand.Reader, csr, (r.sk).(*rsa.PrivateKey))
-	if err != nil {
-		err = fmt.Errorf("issue creating csr %w", err)
-		return
-	}
-	out, err := os.OpenFile(fmt.Sprintf("%s.crt", csr.DNSNames[0]), os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	skPem, err = r.PrivateKeyToPem()
 	if err != nil {
 		return
 	}
-
-	err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csrbytes})
 	return
 }
 
-func (r RSAScheme) MarshalPrivateKeyToPem(dns string) (err error) {
+func (r RSAScheme) PrivateKeyToPem() (skPem pem.Block, err error) {
 	if r.sk == nil {
 		err = fmt.Errorf("private key is missing from scheme")
 		return
@@ -107,15 +120,24 @@ func (r RSAScheme) MarshalPrivateKeyToPem(dns string) (err error) {
 		return
 	}
 
+	skBytes := x509.MarshalPKCS1PrivateKey(r.sk.(*rsa.PrivateKey))
+	if err != nil {
+		return
+	}
+	skPem = pem.Block{Type: "RSA PRIVATE KEY", Bytes: skBytes}
+	return
+}
+
+func (r RSAScheme) MarshalPrivateKeyToFile(dns string) (err error) {
+	skPem, err := r.PrivateKeyToPem()
+	if err != nil {
+		return
+	}
 	keyOut, err := os.OpenFile(dns+".key", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return
 	}
-	skBytes, err := x509.MarshalPKCS8PrivateKey(r.sk.(*rsa.PrivateKey))
-	if err != nil {
-		return
-	}
-	err = pem.Encode(keyOut, &pem.Block{Type: "PRIVATE KEY", Bytes: skBytes})
+	err = pem.Encode(keyOut, &skPem)
 	if err != nil {
 		return
 	}

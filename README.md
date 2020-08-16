@@ -54,26 +54,24 @@ Using `""` as the key will prompt for the password during the command, this is t
 ```
 Usage of certool:
   -c string
-        Config file location (default "/Users/taylor/.config/certool")
-  -csr
-        generate csr
-  -custom
-        Validate using certool CA
-  -dns string
-        DNS for certificate
+        Config file location (default "/home/taylor/.config/certool")
+  -csr string
+        Generate CSR
   -f string
-        Certificate file
+        File to sign
   -gen
         Generate new CA
   -p string
-        Port of remote server (default "443")
-  -remote
-        Check remote peer cert
-  -s string
-        Cryptographic scheme for certs [ed25519, rsa2048, rsa4096] (default "ed25519")
+        Print certificate contents
+  -scheme string
+        Cryptographic scheme for certs [ed25519, ecdsa{256, 384, 512}, rsa{2048, 4096}] (default "ed25519")
   -sign
-        sign request
-  -verify
+        Sign request
+  -signca
+        Sign request as CA
+  -system
+        Validate using certool CA
+  -verify string
         Check cert validity
   -w    Write values to file
 ```
@@ -88,6 +86,29 @@ $ certool -gen
 
 ```
 $ certool -w -csr test.denver.journey
+```
+
+### From file
+
+```json
+{
+  "dns_names": ["test.com"],
+  "subject": {
+    "common_name": "Hello dot com",
+    "organizational_unit": ["Engineering"],
+    "organization": ["Test inc"],
+    "street_address": ["1234 Real St"],
+    "postal_code": ["12345"],
+    "locality": ["Denver"],
+    "province": ["Colorado"],
+    "country": ["US"]
+  },
+  "scheme": "ecdsa256"
+}
+```
+
+```
+$ certool -w -csr ./csr.json
 ```
 
 ## Create and sign request
@@ -360,11 +381,14 @@ Signature:
 
 # Todo
 
+
 - [x] ~Validate and print remote TLS certificates [HTTP/1.1]~
 
 - [ ] Validate and print remote TLS certificates [gRPC & HTTP/2]
 
 - [ ] Sign certs with yubikey
+
+- [ ] Add encrypted and signed audit logs
 
 - [x] ~Password protect ca key~
 

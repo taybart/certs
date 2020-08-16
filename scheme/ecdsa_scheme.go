@@ -2,7 +2,8 @@ package scheme
 
 import (
 	"crypto"
-	"crypto/ed25519"
+	"crypto/ecdsa"
+	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
 	"crypto/x509/pkix"
@@ -11,30 +12,40 @@ import (
 	"os"
 )
 
-type Ed25519Scheme struct {
-	sk crypto.PrivateKey
-	pk crypto.PublicKey
+type ECDSAScheme struct {
+	sk   crypto.PrivateKey
+	pk   crypto.PublicKey
+	size int
 }
 
-func NewEd25519Scheme(size int) *Ed25519Scheme {
-	return &Ed25519Scheme{}
+func (r ECDSAScheme) String() string {
+	return "ecdsa"
 }
-
-func (r Ed25519Scheme) String() string {
-	return "ed25519"
-}
-
-func (e *Ed25519Scheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey, err error) {
-	pk, sk, err = ed25519.GenerateKey(rand.Reader)
-	if err != nil {
-		err = fmt.Errorf("issue generating ed25519 keys %w", err)
+func NewECDSAScheme(size int) *ECDSAScheme {
+	return &ECDSAScheme{
+		size: size,
 	}
-	e.pk = pk
-	e.sk = sk
-	return sk, pk, err
 }
 
-func (e *Ed25519Scheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.Block, err error) {
+func (e *ECDSAScheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey, err error) {
+	switch e.size {
+	case 256:
+		e.sk, err = ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
+	case 384:
+		e.sk, err = ecdsa.GenerateKey(elliptic.P384(), rand.Reader)
+	case 521:
+		e.sk, err = ecdsa.GenerateKey(elliptic.P521(), rand.Reader)
+	default:
+		panic("Unknown curve for ecdsa")
+	}
+	if err != nil {
+		panic(err)
+	}
+	e.pk = e.sk.(*ecdsa.PrivateKey).PublicKey
+	return e.sk, e.pk, nil
+}
+
+func (e *ECDSAScheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.Block, err error) {
 	if e.sk == nil {
 		_, _, err = e.GenerateKeys()
 		if err != nil {
@@ -43,8 +54,8 @@ func (e *Ed25519Scheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.
 		}
 	}
 
-	csr.SignatureAlgorithm = x509.PureEd25519
-	csr.PublicKeyAlgorithm = x509.Ed25519
+	csr.SignatureAlgorithm = x509.ECDSAWithSHA256
+	csr.PublicKeyAlgorithm = x509.ECDSA
 	csr.PublicKey = e.pk
 
 	csrbytes, err := x509.CreateCertificateRequest(rand.Reader, csr, e.sk)
@@ -52,6 +63,7 @@ func (e *Ed25519Scheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.
 		err = fmt.Errorf("issue creating csr %w", err)
 		return
 	}
+
 	newcsr, err := x509.ParseCertificateRequest(csrbytes)
 	if err != nil {
 		return
@@ -65,7 +77,7 @@ func (e *Ed25519Scheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.
 	return
 }
 
-func (e *Ed25519Scheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509.CertificateRequest, err error) {
+func (e *ECDSAScheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509.CertificateRequest, err error) {
 	if e.sk == nil {
 		_, _, err = e.GenerateKeys()
 		if err != nil {
@@ -75,8 +87,8 @@ func (e *Ed25519Scheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x5
 	}
 
 	csr = &x509.CertificateRequest{
-		SignatureAlgorithm: x509.PureEd25519,
-		PublicKeyAlgorithm: x509.Ed25519,
+		SignatureAlgorithm: x509.ECDSAWithSHA256,
+		PublicKeyAlgorithm: x509.ECDSA,
 		PublicKey:          e.pk,
 		Subject: pkix.Name{
 			CommonName:         dns,
@@ -106,13 +118,13 @@ func (e *Ed25519Scheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x5
 	return
 }
 
-func (e Ed25519Scheme) PrivateKeyToPem() (skPem pem.Block, err error) {
+func (e ECDSAScheme) PrivateKeyToPem() (skPem pem.Block, err error) {
 	if e.sk == nil {
 		err = fmt.Errorf("private key is missing from scheme")
 		return
 	}
 
-	if _, ok := (e.sk).(ed25519.PrivateKey); !ok {
+	if _, ok := (e.sk).(*ecdsa.PrivateKey); !ok {
 		err = fmt.Errorf("issue with private key format")
 		return
 	}
@@ -124,8 +136,7 @@ func (e Ed25519Scheme) PrivateKeyToPem() (skPem pem.Block, err error) {
 	skPem = pem.Block{Type: "EC PRIVATE KEY", Bytes: skBytes}
 	return
 }
-
-func (e Ed25519Scheme) MarshalPrivateKeyToFile(dns string) (err error) {
+func (e ECDSAScheme) MarshalPrivateKeyToFile(dns string) (err error) {
 	skPem, err := e.PrivateKeyToPem()
 	if err != nil {
 		return
