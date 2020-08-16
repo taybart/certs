@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"crypto/x509/pkix"
 	"encoding/pem"
+	"fmt"
 	"math/big"
 	"os"
 	"time"
@@ -125,8 +126,10 @@ func LoadCA() (ca CA, err error) {
 	if x509.IsEncryptedPEMBlock(key) {
 		keybytes, err = x509.DecryptPEMBlock(key, []byte(config.GetCAPassword()))
 		if err != nil {
+			fmt.Printf("\033[31m✗\033[0m\n")
 			return
 		}
+		fmt.Printf("\033[32m✓\033[0m\n")
 	}
 	sk, err := x509.ParsePKCS8PrivateKey(keybytes)
 	if err != nil {

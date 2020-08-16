@@ -18,10 +18,16 @@ type Scheme interface {
 
 func NewScheme(s string) (sch Scheme, err error) {
 	switch s {
-	case "ed25519":
+	case "curve25519", "ed25519":
 		sch = NewEd25519Scheme(256)
-	case "ecdsa256":
+	case "ecdsa", "ecdsa256":
 		sch = NewECDSAScheme(256)
+	case "ecdsa384":
+		sch = NewECDSAScheme(384)
+	case "ecdsa521":
+		sch = NewECDSAScheme(521)
+	case "rsa1024":
+		sch = NewRSAScheme(1024)
 	case "rsa", "rsa2048":
 		sch = NewRSAScheme(2048)
 	case "rsa4096":

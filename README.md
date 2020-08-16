@@ -111,10 +111,18 @@ $ certool -w -csr test.denver.journey
 $ certool -w -csr ./csr.json
 ```
 
-## Create and sign request
+## Sign request
 
 ```
 $ certool -w -sign -f ./test.denver.journey.csr
+```
+
+## Create CSR and sign
+
+```
+$ certool -csr ./csr.json -pipe | go run ./cmd/certool -sign -w
+CA Password (hit enter if unencrypted)
+-> ✓
 ```
 
 ## Validate certificate

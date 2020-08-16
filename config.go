@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 
 	"golang.org/x/crypto/ssh/terminal"
@@ -81,12 +82,15 @@ func LoadConfigFromFile(location string) (err error) {
 
 func (c *Config) GetCAPassword() string {
 	fmt.Printf("CA Password (hit enter if unencrypted)\n-> ")
-	bytePassword, err := terminal.ReadPassword(int(os.Stdin.Fd()))
+	tty, err := os.Open("/dev/tty") // Use tty just in case stdin is pipe
 	if err != nil {
-		fmt.Println(err)
+		log.Fatalf("can't open /dev/tty: %s", err)
+	}
+	bytePassword, err := terminal.ReadPassword(int(tty.Fd()))
+	if err != nil {
+		panic(err)
 	}
 
-	fmt.Printf("\n")
 	return string(bytePassword)
 
 }

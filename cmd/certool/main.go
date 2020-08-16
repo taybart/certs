@@ -6,6 +6,7 @@ import (
 	"encoding/pem"
 	"flag"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"regexp"
@@ -28,6 +29,7 @@ var (
 
 	csrhost string
 
+	pipe   bool
 	genCA  bool
 	signCA bool
 	sign   bool
@@ -43,6 +45,7 @@ func init() {
 
 	flag.StringVar(&output, "p", "", "Print certificate contents")
 
+	flag.BoolVar(&pipe, "pipe", false, "Output will be piped")
 	flag.BoolVar(&genCA, "gen", false, "Generate new CA")
 	flag.BoolVar(&signCA, "signca", false, "Sign request as CA")
 	flag.BoolVar(&sign, "sign", false, "Sign request")
@@ -255,8 +258,12 @@ func createCSR() (csr *x509.CertificateRequest, err error) {
 		}
 		certool.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
 	} else {
-		fmt.Println(string(pem.EncodeToMemory(&skPem)))
-		fmt.Println(string(pem.EncodeToMemory(&pem.Block{
+		if pipe {
+			certool.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
+		} else {
+			fmt.Printf(string(pem.EncodeToMemory(&skPem)))
+		}
+		fmt.Printf(string(pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE REQUEST",
 			Bytes: csr.Raw,
 		})))
@@ -266,12 +273,19 @@ func createCSR() (csr *x509.CertificateRequest, err error) {
 
 func signRequest() (err error) {
 	var csr *x509.CertificateRequest
-	if file == "" {
-		csr, err = createCSR()
-		if err != nil {
-			return
+	if isPiped() {
+		reader := bufio.NewReader(os.Stdin)
+		var output []rune
+		for {
+			input, _, err := reader.ReadRune()
+			if err != nil && err == io.EOF {
+				break
+			}
+			output = append(output, input)
 		}
-	} else {
+		block, _ := pem.Decode([]byte(string(output)))
+		csr, err = x509.ParseCertificateRequest(block.Bytes)
+	} else if file != "" {
 		var b []byte
 		b, err = ioutil.ReadFile(file)
 		if err != nil {
@@ -279,6 +293,11 @@ func signRequest() (err error) {
 		}
 		block, _ := pem.Decode(b)
 		csr, err = x509.ParseCertificateRequest(block.Bytes)
+		if err != nil {
+			return
+		}
+	} else {
+		csr, err = createCSR()
 		if err != nil {
 			return
 		}
@@ -337,6 +356,15 @@ func read(name string, valid []string) (val string, err error) {
 	}
 	val = strings.TrimSuffix(val, "\n")
 	return
+}
+
+func isPiped() bool {
+	info, err := os.Stdin.Stat()
+	if err != nil {
+		panic(err)
+	}
+
+	return info.Mode()&os.ModeCharDevice != 0 || info.Size() <= 0
 }
 
 // isValidUrl tests a string to determine if it is a well-structured url or not.
