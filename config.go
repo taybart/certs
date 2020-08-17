@@ -55,12 +55,10 @@ func (c *Config) FirstRun() (err error) {
 	fmt.Println("Certificate authority details...")
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
-		tag := strings.Split(f.Tag.Get("label"), ",")[0] // use split to ignore tag "options" like omitempty, etc.
-
 		defaultValue := reflect.ValueOf(DefaultConfig.CA).Field(i).String()
 
 		var res string
-		res, err = readConfigVar(fmt.Sprintf("Enter %s (default: %s) -> ", tag, defaultValue))
+		res, err = readConfigVar(fmt.Sprintf("Enter %s (default: %s) -> ", f.Tag.Get("label"), defaultValue))
 		if err != nil {
 			return
 		}
