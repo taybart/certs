@@ -111,7 +111,7 @@ func LoadConfig(configLocation string) (err error) {
 		err = nil
 		config.FirstRun()
 		config.Save()
-	} else {
+	} else if err != nil {
 		return err
 	}
 
@@ -121,6 +121,11 @@ func LoadConfig(configLocation string) (err error) {
 		return
 	}
 	err = json.Unmarshal(c, &config)
+	if err != nil {
+		err = fmt.Errorf("issue reading config %w", err)
+		return
+	}
+
 	return
 }
 

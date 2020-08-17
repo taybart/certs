@@ -37,6 +37,7 @@ func GenerateCA(sch string) (ca CA, err error) {
 	}
 	skPem, err := s.PrivateKeyToPem()
 	pw := config.GetCAPassword()
+	fmt.Printf("\033[32m✓\033[0m\n")
 	if pw == "" {
 		err = pem.Encode(out, &skPem)
 		if err != nil {

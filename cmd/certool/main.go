@@ -373,7 +373,7 @@ func isPiped() bool {
 		panic(err)
 	}
 
-	return info.Mode()&os.ModeCharDevice != 0 || info.Size() <= 0
+	return info.Mode()&os.ModeCharDevice == 0
 }
 
 // isValidUrl tests a string to determine if it is a well-structured url or not.
