@@ -1,4 +1,4 @@
-# Certool
+# Certool (sɜː tuːl)
 
 A tool for dealing with certificates.
 
