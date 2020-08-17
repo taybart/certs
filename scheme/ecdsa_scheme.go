@@ -13,8 +13,8 @@ import (
 )
 
 type ECDSAScheme struct {
-	sk   crypto.PrivateKey
-	pk   crypto.PublicKey
+	sk   *ecdsa.PrivateKey
+	pk   *ecdsa.PublicKey
 	size int
 }
 
@@ -41,7 +41,7 @@ func (e *ECDSAScheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey,
 	if err != nil {
 		panic(err)
 	}
-	e.pk = e.sk.(*ecdsa.PrivateKey).PublicKey
+	e.pk = &e.sk.PublicKey
 	return e.sk, e.pk, nil
 }
 
@@ -89,7 +89,7 @@ func (e *ECDSAScheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509
 	csr = &x509.CertificateRequest{
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
 		PublicKeyAlgorithm: x509.ECDSA,
-		PublicKey:          e.pk,
+		PublicKey:          &e.pk,
 		Subject: pkix.Name{
 			CommonName:         dns,
 			Organization:       []string{"Journey"},
@@ -121,11 +121,6 @@ func (e *ECDSAScheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509
 func (e ECDSAScheme) PrivateKeyToPem() (skPem pem.Block, err error) {
 	if e.sk == nil {
 		err = fmt.Errorf("private key is missing from scheme")
-		return
-	}
-
-	if _, ok := (e.sk).(*ecdsa.PrivateKey); !ok {
-		err = fmt.Errorf("issue with private key format")
 		return
 	}
 
