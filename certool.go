@@ -10,6 +10,7 @@ import (
 	"io/ioutil"
 	"log"
 	"os"
+	"os/exec"
 	"strings"
 	"time"
 )
@@ -17,6 +18,18 @@ import (
 func CAExists() bool {
 	_, err := os.Stat(config.CA.Key)
 	return err == nil
+}
+
+func EditConfig() error {
+	cmd := exec.Command(os.Getenv("EDITOR"), fmt.Sprintf("%s/config.json", config.Dir))
+	cmd.Stdin = os.Stdin
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	err := cmd.Run()
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 func HumanReadable(cert *x509.Certificate) string {

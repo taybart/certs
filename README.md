@@ -43,9 +43,12 @@ Using `""` as the key will prompt for the password during the command, this is t
 
 ```json
 {
- "caName": "ca.journey",
- "caKey": "/home/user/.config/certool/ca.journey.key",
- "caCrt": "/home/user/.config/certool/ca.journey.crt",
+ "ca": {
+   "name": "ca.journey",
+   "key": "/home/user/.config/certool/ca.journey.key",
+   "crt": "/home/user/.config/certool/ca.journey.crt",
+   "scheme": "ed25519"
+  }
 }
 ```
 

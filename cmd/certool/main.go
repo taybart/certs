@@ -29,7 +29,9 @@ var (
 
 	csrhost string
 
-	pipe   bool
+	pipe bool
+	edit bool
+
 	genCA  bool
 	signCA bool
 	sign   bool
@@ -46,6 +48,8 @@ func init() {
 	flag.StringVar(&output, "p", "", "Print certificate contents")
 
 	flag.BoolVar(&pipe, "pipe", false, "Output will be piped")
+	flag.BoolVar(&edit, "edit", false, "Edit the config")
+
 	flag.BoolVar(&genCA, "gen", false, "Generate new CA")
 	flag.BoolVar(&signCA, "signca", false, "Sign request as CA")
 	flag.BoolVar(&sign, "sign", false, "Sign request")
@@ -68,6 +72,10 @@ func run() error {
 	err := certool.LoadConfig(configLocation)
 	if err != nil {
 		return err
+	}
+
+	if edit {
+		return certool.EditConfig()
 	}
 
 	if genCA {
