@@ -31,23 +31,24 @@ func GenerateCA(sch string) (ca CA, err error) {
 		return
 	}
 
-	out, err := os.Create(config.CAKey)
+	out, err := os.Create(config.CA.Key)
 	if err != nil {
 		return
 	}
 	skPem, err := s.PrivateKeyToPem()
-	if config.GetCAPassword() != "_" {
-		var block *pem.Block
-		block, err = x509.EncryptPEMBlock(rand.Reader, skPem.Type, skPem.Bytes, []byte(config.GetCAPassword()), x509.PEMCipherAES256)
-		if err != nil {
-			return
-		}
-		err = pem.Encode(out, block)
+	pw := config.GetCAPassword()
+	if pw == "" {
+		err = pem.Encode(out, &skPem)
 		if err != nil {
 			return
 		}
 	} else {
-		err = pem.Encode(out, &skPem)
+		var block *pem.Block
+		block, err = x509.EncryptPEMBlock(rand.Reader, skPem.Type, skPem.Bytes, []byte(pw), x509.PEMCipherAES256)
+		if err != nil {
+			return
+		}
+		err = pem.Encode(out, block)
 		if err != nil {
 			return
 		}
@@ -57,7 +58,7 @@ func GenerateCA(sch string) (ca CA, err error) {
 		return
 	}
 
-	_, csr, err := s.GenerateDefaultCSR(config.CAName)
+	_, csr, err := s.GenerateDefaultCSR(config.CA.Name)
 	if err != nil {
 		return
 	}
@@ -69,7 +70,7 @@ func GenerateCA(sch string) (ca CA, err error) {
 
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
-			CommonName:         config.CAName,
+			CommonName:         config.CA.Name,
 			Organization:       []string{"Journey"},
 			OrganizationalUnit: []string{"Engineering"},
 			Country:            []string{"US"},
@@ -78,7 +79,7 @@ func GenerateCA(sch string) (ca CA, err error) {
 			StreetAddress:      []string{"1999 Broadway St"},
 			PostalCode:         []string{"80202"},
 		},
-		DNSNames:  []string{config.CAName},
+		DNSNames:  []string{config.CA.Name},
 		NotBefore: time.Now(),
 		NotAfter:  time.Now().AddDate(10, 0, 0),
 
@@ -94,7 +95,7 @@ func GenerateCA(sch string) (ca CA, err error) {
 		return
 	}
 
-	out, err = os.Create(config.CACrt)
+	out, err = os.Create(config.CA.Crt)
 	if err != nil {
 		return
 	}
@@ -118,7 +119,7 @@ func GenerateCA(sch string) (ca CA, err error) {
 
 // LoadCA
 func LoadCA() (ca CA, err error) {
-	key, err := openPEM(config.CAKey)
+	key, err := openPEM(config.CA.Key)
 	if err != nil {
 		return
 	}
@@ -136,7 +137,7 @@ func LoadCA() (ca CA, err error) {
 		return
 	}
 
-	certblock, err := openPEM(config.CACrt)
+	certblock, err := openPEM(config.CA.Crt)
 	if err != nil {
 		return
 	}
@@ -189,7 +190,7 @@ func (ca *CA) SignRequest(asn1Data []byte) (cert []byte, err error) {
 	return
 }
 
-// SignCARequest signs x509 certificate request
+// SignCA.Request signs x509 certificate request
 func (ca *CA) SignCARequest(asn1Data []byte) (cert []byte, err error) {
 	csr, err := x509.ParseCertificateRequest(asn1Data)
 	if err != nil {

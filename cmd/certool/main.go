@@ -78,6 +78,7 @@ func run() error {
 			if err != nil {
 				return err
 			}
+			val = strings.Trim(val, "\n")
 			if val != "y" && val != "Y" {
 				fmt.Println("Not regenerating")
 				return nil

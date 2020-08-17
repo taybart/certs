@@ -15,7 +15,7 @@ import (
 )
 
 func CAExists() bool {
-	_, err := os.Stat(config.CAKey)
+	_, err := os.Stat(config.CA.Key)
 	return err == nil
 }
 
