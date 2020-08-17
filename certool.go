@@ -52,12 +52,12 @@ SerialNumber: {{ .C.SerialNumber }}
 Certificate is a CA
 {{ end }}
 Subject: {{ .C.Subject.CommonName }}
-	 {{ if ne (len .C.Subject.Organization) 0 }}{{ index .C.Subject.Organization 0 }}{{end}} {{ if ne (len .C.Subject.OrganizationalUnit) 0 }}{{ index .C.Subject.OrganizationalUnit 0 }}{{ end }}
-	 {{ if ne (len .C.Subject.StreetAddress) 0 }}{{ index .C.Subject.StreetAddress 0 }}, {{end}}{{ if ne (len .C.Subject.Locality) 0 }}{{ index .C.Subject.Locality 0 }}{{end}}{{ if ne (len .C.Subject.Province) 0 }} {{ index .C.Subject.Province 0 }}{{end}}
+	 {{ if notempty .C.Subject.Organization }}{{ index .C.Subject.Organization 0 }}{{end}} {{ if notempty .C.Subject.OrganizationalUnit }}{{ index .C.Subject.OrganizationalUnit 0 }}{{ end }}
+	 {{ if notempty .C.Subject.StreetAddress }}{{ index .C.Subject.StreetAddress 0 }} {{end}}{{ if notempty .C.Subject.Locality }}{{ index .C.Subject.Locality 0 }}, {{end}}{{ if notempty .C.Subject.Province }}{{ index .C.Subject.Province 0 }}{{end}}{{ if notempty .C.Issuer.Country }}, {{ index .C.Issuer.Country 0 }}{{end}}
 
 Issuer:  {{ .C.Issuer.CommonName }}
-	 {{ if ne (len .C.Issuer.Organization) 0 }}{{ index .C.Issuer.Organization 0 }}{{end}} {{ if ne (len .C.Issuer.OrganizationalUnit) 0 }}{{ index .C.Issuer.OrganizationalUnit 0 }}{{ end }}
-	 {{ if ne (len .C.Issuer.StreetAddress) 0 }}{{ index .C.Issuer.StreetAddress 0 }}, {{end}}{{ if ne (len .C.Issuer.Locality) 0 }}{{ index .C.Issuer.Locality 0 }}{{end}}{{ if ne (len .C.Issuer.Province) 0 }} {{ index .C.Issuer.Province 0 }}{{end}}
+	 {{ if notempty .C.Issuer.Organization }}{{ index .C.Issuer.Organization 0 }}{{end}} {{ if notempty .C.Issuer.OrganizationalUnit }}{{ index .C.Issuer.OrganizationalUnit 0 }}{{ end }}
+	 {{ if notempty .C.Issuer.StreetAddress }}{{ index .C.Issuer.StreetAddress 0 }} {{end}}{{ if notempty .C.Issuer.Locality }}{{ index .C.Issuer.Locality 0 }}, {{end}}{{ if notempty .C.Issuer.Province }}{{ index .C.Issuer.Province 0 }}{{end}}{{ if notempty .C.Issuer.Country }}, {{ index .C.Issuer.Country 0 }}{{end}}
 
 KeyUsage: {{ .KeyUsages }}
 ExtKeyUsage: {{ .ExtKeyUsages }}
@@ -72,6 +72,12 @@ OCSPServer: {{ .C.OCSPServer }}
 {{- end -}}
 `
 	funcMap := template.FuncMap{
+		"notempty": func(arr []string) bool {
+			if len(arr) == 1 {
+				return arr[0] != ""
+			}
+			return len(arr) != 0
+		},
 		"indent": func(spaces int, v string) string {
 			pad := strings.Repeat(" ", spaces)
 			return pad + strings.Replace(v, "\n", "\n"+pad, -1)

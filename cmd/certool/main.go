@@ -40,7 +40,7 @@ var (
 
 func init() {
 	flag.StringVar(&configLocation, "c", certool.DefaultConfig.Dir, "Config file location")
-	flag.StringVar(&sch, "scheme", "ed25519", "Cryptographic scheme for certs [ed25519, ecdsa{256, 384, 512}, rsa{2048, 4096}]")
+	flag.StringVar(&sch, "scheme", "", "Cryptographic scheme for certs [ed25519, ecdsa{256, 384, 512}, rsa{2048, 4096}]")
 
 	flag.StringVar(&verify, "verify", "", "Check cert validity")
 	flag.BoolVar(&systemCA, "system", false, "Validate using certool CA")
@@ -72,6 +72,9 @@ func run() error {
 	err := certool.LoadConfig(configLocation)
 	if err != nil {
 		return err
+	}
+	if sch == "" {
+		sch = certool.GetDefaultScheme()
 	}
 
 	if edit {

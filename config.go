@@ -143,6 +143,10 @@ func LoadConfigFromFile(location string) (err error) {
 	return
 }
 
+func GetDefaultScheme() string {
+	return config.CA.Scheme
+
+}
 func (c *Config) GetCAPassword() string {
 	fmt.Printf("Enter CA Password -> ")
 	tty, err := os.Open("/dev/tty") // Use tty just in case stdin is pipe
