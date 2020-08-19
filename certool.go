@@ -70,8 +70,8 @@ KeyUsage: {{ .KeyUsages }}
 ExtKeyUsage: {{ .ExtKeyUsages }}
 
 PublicKeyAlgorithm: {{ .C.PublicKeyAlgorithm }}
-SignatureAlgorithm: {{ .C.SignatureAlgorithm }}
 
+SignatureAlgorithm: {{ .C.SignatureAlgorithm }}
 Signature:
 {{ .C.Signature | printf "%x" | wrapsig 50 | indent 6 }}
 {{- if .C.OCSPServer }}
