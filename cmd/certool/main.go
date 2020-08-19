@@ -252,6 +252,25 @@ func run() error {
 		}
 		return nil
 	}
+	if isPiped() {
+		reader := bufio.NewReader(os.Stdin)
+		var output []rune
+		for {
+			input, _, err := reader.ReadRune()
+			if err != nil && err == io.EOF {
+				break
+			}
+			output = append(output, input)
+		}
+		block, _ := pem.Decode([]byte(string(output)))
+		var cert *x509.Certificate
+		cert, err = x509.ParseCertificate(block.Bytes)
+		if err != nil {
+			return err
+		}
+		fmt.Println(certool.HumanReadable(cert))
+		return nil
+	}
 	flag.Usage()
 	return nil
 }
