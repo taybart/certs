@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"os"
 	"os/exec"
 	"strings"
@@ -30,6 +29,14 @@ func EditConfig() error {
 		return err
 	}
 	return nil
+}
+
+func GetCACert() (*x509.Certificate, error) {
+	certs, err := LoadCertificates(config.CA.Crt)
+	if err != nil {
+		return nil, err
+	}
+	return certs[0], nil
 }
 
 func HumanReadable(cert *x509.Certificate) string {
@@ -180,12 +187,19 @@ func VerifySystemRoots(cert *x509.Certificate, intermediateChain []*x509.Certifi
 	return
 }
 
-func LoadCertificate(file string) (cert *x509.Certificate, err error) {
-	certblock, err := openPEM(file)
+func LoadCertificates(file string) (certs []*x509.Certificate, err error) {
+	certblocks, err := openPEM(file)
 	if err != nil {
 		return
 	}
-	cert, err = x509.ParseCertificate(certblock.Bytes)
+	for _, certblock := range certblocks {
+		var cert *x509.Certificate
+		cert, err = x509.ParseCertificate(certblock.Bytes)
+		if err != nil {
+			return
+		}
+		certs = append(certs, cert)
+	}
 	return
 }
 
@@ -239,17 +253,25 @@ func MarshalCertificateToPem(cert *x509.Certificate) (err error) {
 	return
 }
 
-func openPEM(name string) (block *pem.Block, err error) {
-	certPEM, err := ioutil.ReadFile(name)
-
+func openPEM(name string) (blocks []*pem.Block, err error) {
+	pembytes, err := ioutil.ReadFile(name)
 	if err != nil {
-		log.Fatal("the err is: " + err.Error())
 		return
 	}
-	block, _ = pem.Decode(certPEM)
-	if block == nil {
-		err = fmt.Errorf("Failed to parse certificate PEM %s", name)
-		return
+	block, rest := pem.Decode(pembytes)
+	blocks = append(blocks, block)
+	if rest != nil {
+		var lastloop []byte
+		for {
+			block, rest = pem.Decode(rest)
+			if rest == nil || bytes.Equal(rest, lastloop) {
+				return
+			}
+			lastloop = rest
+			if block != nil {
+				blocks = append(blocks, block)
+			}
+		}
 	}
 	return
 }

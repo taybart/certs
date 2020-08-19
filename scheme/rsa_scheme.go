@@ -86,8 +86,8 @@ func (r *RSAScheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509.C
 			Country:            []string{"US"},
 			Province:           []string{"Colorado"},
 			Locality:           []string{"Denver"},
-			StreetAddress:      []string{"1999 Broadway St"},
-			PostalCode:         []string{"80202"},
+			StreetAddress:      []string{""},
+			PostalCode:         []string{""},
 		},
 		DNSNames: []string{dns},
 	}

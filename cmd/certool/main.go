@@ -21,9 +21,10 @@ var (
 
 	sch string
 
-	systemCA bool
-	verify   string
-	output   string
+	systemCA  bool
+	verify    string
+	output    string
+	printcert bool
 
 	write bool
 
@@ -46,6 +47,7 @@ func init() {
 	flag.BoolVar(&systemCA, "system", false, "Validate using certool CA")
 
 	flag.StringVar(&output, "p", "", "Print certificate contents")
+	flag.BoolVar(&printcert, "cert", false, "Print certool certificate contents")
 
 	flag.BoolVar(&pipe, "pipe", false, "Output will be piped")
 	flag.BoolVar(&edit, "edit", false, "Edit the config")
@@ -73,6 +75,17 @@ func run() error {
 	if err != nil {
 		return err
 	}
+
+	if printcert {
+		cert, err := certool.GetCACert()
+		if err != nil {
+			return err
+		}
+		fmt.Println(string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})))
+		return nil
+
+	}
+
 	if sch == "" {
 		sch = certool.GetDefaultScheme()
 	}
@@ -111,25 +124,33 @@ func run() error {
 
 	if verify != "" {
 		if isPath(verify) {
-			cert, err := certool.LoadCertificate(verify)
+			certs, err := certool.LoadCertificates(verify)
 			if err != nil {
 				err = fmt.Errorf("Issue loading cert %w", err)
 				return err
 			}
-			fmt.Printf("%s\n\n", certool.HumanReadable(cert))
+
+			for _, cert := range certs {
+				fmt.Printf("%s\n\n", certool.HumanReadable(cert))
+			}
 
 			var dns string
-			if len(cert.DNSNames) > 0 {
-				dns = cert.DNSNames[0] // TODO pick which name to test
-			} else if cert.Subject.CommonName != "" {
-				dns = cert.Subject.CommonName
+			if len(certs[0].DNSNames) > 0 {
+				dns = certs[0].DNSNames[0] // TODO pick which name to test
+			} else if certs[0].Subject.CommonName != "" {
+				dns = certs[0].Subject.CommonName
 				fmt.Println("WARNING: Using common name for verification, this is not recommended")
 			} else {
 				return fmt.Errorf("No dns detected in cert")
 			}
 
+			intermediates := []*x509.Certificate{}
+			if len(certs) > 1 {
+				intermediates = certs[1:]
+			}
+
 			if systemCA {
-				err := certool.VerifySystemRoots(cert, nil, cert.DNSNames[0])
+				err := certool.VerifySystemRoots(certs[0], intermediates, certs[0].DNSNames[0])
 				if err != nil {
 					err = fmt.Errorf("Certificate invalid %w", err)
 					return err
@@ -144,7 +165,7 @@ func run() error {
 				return err
 			}
 
-			err = certool.Verify([]*x509.Certificate{ca.Cert}, cert, dns)
+			err = certool.Verify(append(intermediates, ca.Cert), certs[0], dns)
 			if err != nil {
 				err = fmt.Errorf("Certificate invalid %w", err)
 				return err
@@ -203,12 +224,14 @@ func run() error {
 
 	if output != "" {
 		if isPath(output) {
-			cert, err := certool.LoadCertificate(output)
+			certs, err := certool.LoadCertificates(output)
 			if err != nil {
 				err = fmt.Errorf("Issue loading cert %w", err)
 				return err
 			}
-			fmt.Println(certool.HumanReadable(cert))
+			for _, cert := range certs {
+				fmt.Println(certool.HumanReadable(cert))
+			}
 			return nil
 		}
 

@@ -77,8 +77,8 @@ func GenerateCA(sch string) (ca CA, err error) {
 			Country:            []string{"US"},
 			Province:           []string{"Colorado"},
 			Locality:           []string{"Denver"},
-			StreetAddress:      []string{"1999 Broadway St"},
-			PostalCode:         []string{"80202"},
+			StreetAddress:      []string{""},
+			PostalCode:         []string{""},
 		},
 		DNSNames:  []string{config.CA.Name},
 		NotBefore: time.Now(),
@@ -120,13 +120,13 @@ func GenerateCA(sch string) (ca CA, err error) {
 
 // LoadCA
 func LoadCA() (ca CA, err error) {
-	key, err := openPEM(config.CA.Key)
+	keys, err := openPEM(config.CA.Key)
 	if err != nil {
 		return
 	}
-	keybytes := key.Bytes
-	if x509.IsEncryptedPEMBlock(key) {
-		keybytes, err = x509.DecryptPEMBlock(key, []byte(config.GetCAPassword()))
+	keybytes := keys[0].Bytes
+	if x509.IsEncryptedPEMBlock(keys[0]) {
+		keybytes, err = x509.DecryptPEMBlock(keys[0], []byte(config.GetCAPassword()))
 		if err != nil {
 			fmt.Printf("\033[31m✗\033[0m\n")
 			return
@@ -138,12 +138,12 @@ func LoadCA() (ca CA, err error) {
 		return
 	}
 
-	certblock, err := openPEM(config.CA.Crt)
+	certblocks, err := openPEM(config.CA.Crt)
 	if err != nil {
 		return
 	}
 
-	cert, err := x509.ParseCertificate(certblock.Bytes)
+	cert, err := x509.ParseCertificate(certblocks[0].Bytes)
 	if err != nil {
 		return
 	}
@@ -222,7 +222,7 @@ func (ca *CA) SignCARequest(asn1Data []byte) (cert []byte, err error) {
 		DNSNames:     csr.DNSNames,
 
 		NotBefore: time.Now(),
-		NotAfter:  time.Now().AddDate(10, 0, 0),
+		NotAfter:  time.Now().AddDate(3, 0, 0),
 
 		IsCA:                  true,
 		BasicConstraintsValid: true,
