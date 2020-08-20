@@ -45,7 +45,7 @@ func (e *ECDSAScheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey,
 	return e.sk, e.pk, nil
 }
 
-func (e *ECDSAScheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.Block, err error) {
+func (e *ECDSAScheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem *pem.Block, err error) {
 	if e.sk == nil {
 		_, _, err = e.GenerateKeys()
 		if err != nil {
@@ -77,7 +77,7 @@ func (e *ECDSAScheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.Bl
 	return
 }
 
-func (e *ECDSAScheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509.CertificateRequest, err error) {
+func (e *ECDSAScheme) GenerateDefaultCSR(dns string) (skPem *pem.Block, csr *x509.CertificateRequest, err error) {
 	if e.sk == nil {
 		_, _, err = e.GenerateKeys()
 		if err != nil {
@@ -118,7 +118,7 @@ func (e *ECDSAScheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509
 	return
 }
 
-func (e ECDSAScheme) PrivateKeyToPem() (skPem pem.Block, err error) {
+func (e ECDSAScheme) PrivateKeyToPem() (skPem *pem.Block, err error) {
 	if e.sk == nil {
 		err = fmt.Errorf("private key is missing from scheme")
 		return
@@ -128,7 +128,15 @@ func (e ECDSAScheme) PrivateKeyToPem() (skPem pem.Block, err error) {
 	if err != nil {
 		return
 	}
-	skPem = pem.Block{Type: "EC PRIVATE KEY", Bytes: skBytes}
+
+	skPem = &pem.Block{Type: "EC PRIVATE KEY", Bytes: skBytes}
+	pw := readPassword()
+	if pw != nil {
+		skPem, err = x509.EncryptPEMBlock(rand.Reader, skPem.Type, skPem.Bytes, []byte(pw), x509.PEMCipherAES256)
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 func (e ECDSAScheme) MarshalPrivateKeyToFile(dns string) (err error) {
@@ -140,7 +148,7 @@ func (e ECDSAScheme) MarshalPrivateKeyToFile(dns string) (err error) {
 	if err != nil {
 		return
 	}
-	err = pem.Encode(keyOut, &skPem)
+	err = pem.Encode(keyOut, skPem)
 	if err != nil {
 		return
 	}

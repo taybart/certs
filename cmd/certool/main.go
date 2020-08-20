@@ -281,7 +281,7 @@ func createCSR() (csr *x509.CertificateRequest, err error) {
 		return
 	}
 
-	var skPem pem.Block
+	var skPem *pem.Block
 	if isPath(csrhost) {
 		skPem, csr, err = scheme.CSRFromFile(csrhost)
 		if err != nil {
@@ -315,7 +315,7 @@ func createCSR() (csr *x509.CertificateRequest, err error) {
 		if pipe {
 			certool.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
 		} else {
-			fmt.Printf(string(pem.EncodeToMemory(&skPem)))
+			fmt.Printf(string(pem.EncodeToMemory(skPem)))
 		}
 		fmt.Printf(string(pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE REQUEST",

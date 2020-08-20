@@ -34,7 +34,7 @@ func (e *Ed25519Scheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKe
 	return sk, pk, err
 }
 
-func (e *Ed25519Scheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.Block, err error) {
+func (e *Ed25519Scheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem *pem.Block, err error) {
 	if e.sk == nil {
 		_, _, err = e.GenerateKeys()
 		if err != nil {
@@ -65,7 +65,7 @@ func (e *Ed25519Scheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.
 	return
 }
 
-func (e *Ed25519Scheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509.CertificateRequest, err error) {
+func (e *Ed25519Scheme) GenerateDefaultCSR(dns string) (skPem *pem.Block, csr *x509.CertificateRequest, err error) {
 	if e.sk == nil {
 		_, _, err = e.GenerateKeys()
 		if err != nil {
@@ -106,7 +106,7 @@ func (e *Ed25519Scheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x5
 	return
 }
 
-func (e Ed25519Scheme) PrivateKeyToPem() (skPem pem.Block, err error) {
+func (e Ed25519Scheme) PrivateKeyToPem() (skPem *pem.Block, err error) {
 	if e.sk == nil {
 		err = fmt.Errorf("private key is missing from scheme")
 		return
@@ -121,7 +121,14 @@ func (e Ed25519Scheme) PrivateKeyToPem() (skPem pem.Block, err error) {
 	if err != nil {
 		return
 	}
-	skPem = pem.Block{Type: "EC PRIVATE KEY", Bytes: skBytes}
+	skPem = &pem.Block{Type: "EC PRIVATE KEY", Bytes: skBytes}
+	pw := readPassword()
+	if pw != nil {
+		skPem, err = x509.EncryptPEMBlock(rand.Reader, skPem.Type, skPem.Bytes, []byte(pw), x509.PEMCipherAES256)
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
@@ -134,7 +141,7 @@ func (e Ed25519Scheme) MarshalPrivateKeyToFile(dns string) (err error) {
 	if err != nil {
 		return
 	}
-	err = pem.Encode(keyOut, &skPem)
+	err = pem.Encode(keyOut, skPem)
 	if err != nil {
 		return
 	}

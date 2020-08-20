@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"html/template"
 	"io/ioutil"
-	"log"
 	"os"
 	"reflect"
 	"strings"
@@ -145,20 +144,20 @@ func LoadConfigFromFile(location string) (err error) {
 
 func GetDefaultScheme() string {
 	return config.CA.Scheme
-
 }
-func (c *Config) GetCAPassword() string {
+
+func (c *Config) GetCAPassword() []byte {
 	fmt.Printf("Enter CA Password -> ")
 	tty, err := os.Open("/dev/tty") // Use tty just in case stdin is pipe
 	if err != nil {
-		log.Fatalf("can't open /dev/tty: %s", err)
+		panic(fmt.Errorf("can't open /dev/tty: %w", err))
 	}
 	bytePassword, err := terminal.ReadPassword(int(tty.Fd()))
 	if err != nil {
 		panic(err)
 	}
 
-	return string(bytePassword)
+	return bytePassword
 
 }
 

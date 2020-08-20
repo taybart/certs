@@ -36,16 +36,17 @@ func GenerateCA(sch string) (ca CA, err error) {
 		return
 	}
 	skPem, err := s.PrivateKeyToPem()
-	pw := config.GetCAPassword()
+	err = pem.Encode(out, skPem)
+	/* pw := config.GetCAPassword()
 	fmt.Printf("\033[32m✓\033[0m\n")
-	if pw == "" {
-		err = pem.Encode(out, &skPem)
+	if pw == nil {
+		err = pem.Encode(out, skPem)
 		if err != nil {
 			return
 		}
 	} else {
 		var block *pem.Block
-		block, err = x509.EncryptPEMBlock(rand.Reader, skPem.Type, skPem.Bytes, []byte(pw), x509.PEMCipherAES256)
+		block, err = x509.EncryptPEMBlock(rand.Reader, skPem.Type, skPem.Bytes, pw, x509.PEMCipherAES256)
 		if err != nil {
 			return
 		}
@@ -53,7 +54,7 @@ func GenerateCA(sch string) (ca CA, err error) {
 		if err != nil {
 			return
 		}
-	}
+	} */
 	err = out.Close()
 	if err != nil {
 		return
@@ -126,7 +127,7 @@ func LoadCA() (ca CA, err error) {
 	}
 	keybytes := keys[0].Bytes
 	if x509.IsEncryptedPEMBlock(keys[0]) {
-		keybytes, err = x509.DecryptPEMBlock(keys[0], []byte(config.GetCAPassword()))
+		keybytes, err = x509.DecryptPEMBlock(keys[0], config.GetCAPassword())
 		if err != nil {
 			fmt.Printf("\033[31m✗\033[0m\n")
 			return

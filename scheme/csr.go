@@ -28,7 +28,7 @@ type CSR struct {
 	Scheme   string   `json:"scheme,omitempty"`
 }
 
-func CSRFromFile(filename string) (skPem pem.Block, csr *x509.CertificateRequest, err error) {
+func CSRFromFile(filename string) (skPem *pem.Block, csr *x509.CertificateRequest, err error) {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {
 		return

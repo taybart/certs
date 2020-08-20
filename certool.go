@@ -223,12 +223,12 @@ func MarshalPrivateKeyToPem(sk crypto.PrivateKey, name string) (err error) {
 	return keyOut.Close()
 }
 
-func WritePemToFile(name string, block pem.Block) (err error) {
+func WritePemToFile(name string, block *pem.Block) (err error) {
 	keyOut, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return
 	}
-	err = pem.Encode(keyOut, &block)
+	err = pem.Encode(keyOut, block)
 	if err != nil {
 		return
 	}

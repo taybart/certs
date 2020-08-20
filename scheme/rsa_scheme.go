@@ -37,7 +37,7 @@ func (r *RSAScheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey, e
 	return rsask, &rsask.PublicKey, nil
 }
 
-func (r *RSAScheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.Block, err error) {
+func (r *RSAScheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem *pem.Block, err error) {
 	if r.sk == nil {
 		_, _, err = r.GenerateKeys()
 		if err != nil {
@@ -69,7 +69,7 @@ func (r *RSAScheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem pem.Bloc
 	return
 }
 
-func (r *RSAScheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509.CertificateRequest, err error) {
+func (r *RSAScheme) GenerateDefaultCSR(dns string) (skPem *pem.Block, csr *x509.CertificateRequest, err error) {
 	sk, pk, err := r.GenerateKeys()
 	if err != nil {
 		err = fmt.Errorf("issue generating keys for scheme %s %w", r.String(), err)
@@ -109,7 +109,7 @@ func (r *RSAScheme) GenerateDefaultCSR(dns string) (skPem pem.Block, csr *x509.C
 	return
 }
 
-func (r RSAScheme) PrivateKeyToPem() (skPem pem.Block, err error) {
+func (r RSAScheme) PrivateKeyToPem() (skPem *pem.Block, err error) {
 	if r.sk == nil {
 		err = fmt.Errorf("private key is missing from scheme")
 		return
@@ -124,7 +124,14 @@ func (r RSAScheme) PrivateKeyToPem() (skPem pem.Block, err error) {
 	if err != nil {
 		return
 	}
-	skPem = pem.Block{Type: "RSA PRIVATE KEY", Bytes: skBytes}
+	skPem = &pem.Block{Type: "RSA PRIVATE KEY", Bytes: skBytes}
+	pw := readPassword()
+	if pw != nil {
+		skPem, err = x509.EncryptPEMBlock(rand.Reader, skPem.Type, skPem.Bytes, []byte(pw), x509.PEMCipherAES256)
+		if err != nil {
+			return
+		}
+	}
 	return
 }
 
@@ -137,7 +144,7 @@ func (r RSAScheme) MarshalPrivateKeyToFile(dns string) (err error) {
 	if err != nil {
 		return
 	}
-	err = pem.Encode(keyOut, &skPem)
+	err = pem.Encode(keyOut, skPem)
 	if err != nil {
 		return
 	}
