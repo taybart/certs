@@ -34,6 +34,10 @@ func (e *Ed25519Scheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKe
 	return sk, pk, err
 }
 
+func (e *Ed25519Scheme) GetSignatureAlgorithm() x509.SignatureAlgorithm {
+	return x509.PureEd25519
+}
+
 func (e *Ed25519Scheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem *pem.Block, err error) {
 	if e.sk == nil {
 		_, _, err = e.GenerateKeys()

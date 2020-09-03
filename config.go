@@ -129,7 +129,7 @@ func LoadConfig(configLocation string) (err error) {
 }
 
 func LoadConfigFromFile(location string) (err error) {
-	c, err := ioutil.ReadFile(fmt.Sprintf("%s/config.json", location))
+	c, err := ioutil.ReadFile(location)
 	if err != nil {
 		err = fmt.Errorf("issue reading config %w", err)
 		return

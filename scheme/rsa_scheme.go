@@ -23,6 +23,14 @@ func NewRSAScheme(size int) *RSAScheme {
 	}
 }
 
+func NewRSASchemeFromKeys(sk *rsa.PrivateKey, pk *rsa.PublicKey) *RSAScheme {
+	return &RSAScheme{
+		size: sk.N.BitLen(),
+		sk:   sk,
+		pk:   pk,
+	}
+}
+
 func (r RSAScheme) String() string {
 	return fmt.Sprintf("rsa%d", r.size)
 }
@@ -35,6 +43,10 @@ func (r *RSAScheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey, e
 	r.sk = rsask
 	r.pk = &rsask.PublicKey
 	return rsask, &rsask.PublicKey, nil
+}
+
+func (r *RSAScheme) GetSignatureAlgorithm() x509.SignatureAlgorithm {
+	return x509.SHA256WithRSA
 }
 
 func (r *RSAScheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem *pem.Block, err error) {

@@ -18,6 +18,7 @@ import (
 type CA struct {
 	Cert *x509.Certificate
 	sk   crypto.PrivateKey
+	sch  scheme.Scheme
 }
 
 // BootstrapNetwork start a new Certificate authority
@@ -37,24 +38,9 @@ func GenerateCA(sch string) (ca CA, err error) {
 	}
 	skPem, err := s.PrivateKeyToPem()
 	err = pem.Encode(out, skPem)
-	/* pw := config.GetCAPassword()
-	fmt.Printf("\033[32m✓\033[0m\n")
-	if pw == nil {
-		err = pem.Encode(out, skPem)
-		if err != nil {
-			return
-		}
-	} else {
-		var block *pem.Block
-		block, err = x509.EncryptPEMBlock(rand.Reader, skPem.Type, skPem.Bytes, pw, x509.PEMCipherAES256)
-		if err != nil {
-			return
-		}
-		err = pem.Encode(out, block)
-		if err != nil {
-			return
-		}
-	} */
+	if err != nil {
+		return
+	}
 	err = out.Close()
 	if err != nil {
 		return
@@ -115,7 +101,7 @@ func GenerateCA(sch string) (ca CA, err error) {
 		return
 	}
 
-	ca = CA{Cert: cert, sk: sk}
+	ca = CA{Cert: cert, sk: sk, sch: s}
 	return
 }
 
@@ -148,8 +134,12 @@ func LoadCA() (ca CA, err error) {
 	if err != nil {
 		return
 	}
+	sch, err := scheme.SchemeFromKey(sk, cert.PublicKey)
+	if err != nil {
+		return
+	}
 
-	ca = CA{Cert: cert, sk: sk}
+	ca = CA{Cert: cert, sk: sk, sch: sch}
 	return
 }
 
@@ -172,8 +162,7 @@ func (ca *CA) SignRequest(asn1Data []byte) (cert []byte, err error) {
 	}
 	// Client Template
 	template := &x509.Certificate{
-		Signature:          csr.Signature,
-		SignatureAlgorithm: csr.SignatureAlgorithm,
+		SignatureAlgorithm: ca.sch.GetSignatureAlgorithm(),
 
 		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
 		PublicKey:          csr.PublicKey,

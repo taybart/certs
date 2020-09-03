@@ -27,6 +27,14 @@ func NewECDSAScheme(size int) *ECDSAScheme {
 	}
 }
 
+func NewECDSASchemeFromKeys(sk *ecdsa.PrivateKey, pk *ecdsa.PublicKey) *ECDSAScheme {
+	return &ECDSAScheme{
+		size: sk.D.BitLen(),
+		sk:   sk,
+		pk:   pk,
+	}
+}
+
 func (e *ECDSAScheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey, err error) {
 	switch e.size {
 	case 256:
@@ -43,6 +51,10 @@ func (e *ECDSAScheme) GenerateKeys() (sk crypto.PrivateKey, pk crypto.PublicKey,
 	}
 	e.pk = &e.sk.PublicKey
 	return e.sk, e.pk, nil
+}
+
+func (e *ECDSAScheme) GetSignatureAlgorithm() x509.SignatureAlgorithm {
+	return x509.ECDSAWithSHA256
 }
 
 func (e *ECDSAScheme) AddCryptoToCSR(csr *x509.CertificateRequest) (skPem *pem.Block, err error) {

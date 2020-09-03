@@ -31,6 +31,7 @@ var (
 	csrhost string
 
 	pipe bool
+	nopw bool
 	edit bool
 
 	genCA  bool
@@ -49,6 +50,7 @@ func init() {
 	flag.StringVar(&output, "p", "", "Print certificate contents")
 	flag.BoolVar(&printcert, "cert", false, "Print certool certificate contents")
 
+	flag.BoolVar(&nopw, "no-pw", false, "Don't ask for a password (for pipes)")
 	flag.BoolVar(&pipe, "pipe", false, "Output will be piped")
 	flag.BoolVar(&edit, "edit", false, "Edit the config")
 
@@ -71,9 +73,20 @@ func main() {
 }
 
 func run() error {
-	err := certool.LoadConfig(configLocation)
-	if err != nil {
-		return err
+	if configLocation == certool.DefaultConfig.Dir {
+		err := certool.LoadConfig(configLocation)
+		if err != nil {
+			return err
+		}
+	} else {
+		err := certool.LoadConfigFromFile(configLocation)
+		if err != nil {
+			return err
+		}
+	}
+
+	if nopw || pipe {
+		scheme.SetNoPw()
 	}
 
 	if printcert {
@@ -108,17 +121,17 @@ func run() error {
 				return nil
 			}
 		}
-		_, err = certool.GenerateCA(sch)
+		_, err := certool.GenerateCA(sch)
 		return err
 	}
 
 	if csrhost != "" {
-		_, err = createCSR()
+		_, err := createCSR()
 		return err
 	}
 
 	if sign || signCA {
-		err = signRequest()
+		err := signRequest()
 		return err
 	}
 
@@ -176,7 +189,7 @@ func run() error {
 
 		re := regexp.MustCompile(`([[:alnum:]\.]+):([[:digit:]]+)`)
 		matches := re.FindAllStringSubmatch(verify, -1)
-		if err != nil || len(matches) == 0 {
+		if len(matches) == 0 {
 			return fmt.Errorf("Issue parsing remote dns to check")
 		}
 		host := matches[0][1]
@@ -237,7 +250,7 @@ func run() error {
 
 		re := regexp.MustCompile(`([[:alnum:]\.]+):([[:digit:]]+)`)
 		matches := re.FindAllStringSubmatch(output, -1)
-		if err != nil || len(matches) == 0 {
+		if len(matches) == 0 {
 			return fmt.Errorf("Issue parsing remote dns to check")
 		}
 		host := matches[0][1]
@@ -263,8 +276,7 @@ func run() error {
 			output = append(output, input)
 		}
 		block, _ := pem.Decode([]byte(string(output)))
-		var cert *x509.Certificate
-		cert, err = x509.ParseCertificate(block.Bytes)
+		cert, err := x509.ParseCertificate(block.Bytes)
 		if err != nil {
 			return err
 		}
