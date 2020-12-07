@@ -1,8 +1,8 @@
-# Certool (sər tul)
+# Certs
 
 A tool for dealing with certificates.
 
-![certool](assets/certool.png)
+![certs](assets/certs.png)
 
 ## Table of Contents
 
@@ -33,20 +33,20 @@ A tool for dealing with certificates.
 # Installation
 
 ```
-$ go get -u github.com/journeyai/certool/cmd/certool
+$ go get -u github.com/taybart/certs/cmd/certs
 ```
 
 # Configuration
 
-Certool's configuration lives at `$HOME/.config/certool/config.json`
+Cert's configuration lives at `$HOME/.config/certs/config.json`
 Using `""` as the key will prompt for the password during the command, this is the recommended use.  Setting the password to `_` will not add a password to the ca key.
 
 ```json
 {
  "ca": {
    "name": "ca.journey",
-   "key": "/home/user/.config/certool/ca.journey.key",
-   "crt": "/home/user/.config/certool/ca.journey.crt",
+   "key": "/home/user/.config/certs/ca.journey.key",
+   "crt": "/home/user/.config/certs/ca.journey.crt",
    "scheme": "ed25519"
   }
 }
@@ -55,9 +55,9 @@ Using `""` as the key will prompt for the password during the command, this is t
 # Usage
 
 ```
-Usage of certool:
+Usage of certs:
   -c string
-        Config file location (default "/home/taylor/.config/certool")
+        Config file location (default "/home/taylor/.config/certs")
   -csr string
         Generate CSR
   -f string
@@ -73,7 +73,7 @@ Usage of certool:
   -signca
         Sign request as CA
   -system
-        Validate using certool CA
+        Validate using certs CA
   -verify string
         Check cert validity
   -w    Write values to file
@@ -82,13 +82,13 @@ Usage of certool:
 ## Generating a Certificate Authority
 
 ```
-$ certool -gen
+$ certs -gen
 ```
 
 ## Create CSR
 
 ```
-$ certool -w -csr test.denver.journey
+$ certs -w -csr test.denver.journey
 ```
 
 ### From file
@@ -111,19 +111,19 @@ $ certool -w -csr test.denver.journey
 ```
 
 ```
-$ certool -w -csr ./csr.json
+$ certs -w -csr ./csr.json
 ```
 
 ## Sign request
 
 ```
-$ certool -w -sign -f ./test.denver.journey.csr
+$ certs -w -sign -f ./test.denver.journey.csr
 ```
 
 ## Create CSR and sign
 
 ```
-$ certool -csr ./csr.json -pipe | go run ./cmd/certool -sign -w
+$ certs -csr ./csr.json -pipe | go run ./cmd/certs -sign -w
 CA Password (hit enter if unencrypted)
 -> ✓
 ```
@@ -133,7 +133,7 @@ CA Password (hit enter if unencrypted)
 **System roots**
 
 ```
-$ certool -verify -system ./test.denver.journey.crt
+$ certs -verify -system ./test.denver.journey.crt
 DNSNames: [test.denver.journey]
 SerialNumber: 33402702424818636287940487352184976883
 
@@ -160,10 +160,10 @@ Certificate invalid invalid cert x509: certificate signed by unknown authority
 exit status 1
 ```
 
-**Certool CA**
+**Certs CA**
 
 ```
-$ certool -verify ./test.denver.journey.crt
+$ certs -verify ./test.denver.journey.crt
 DNSNames: [test.denver.journey]
 SerialNumber: 33402702424818636287940487352184976883
 
@@ -194,7 +194,7 @@ Certificate valid
 **System roots**
 
 ```
-$ certool -verify example.com:443
+$ certs -verify example.com:443
 DNSNames: [www.example.org example.com example.edu example.net example.org www.example.com www.example.edu www.example.net]
 SerialNumber: 21020869104500376438182461249190639870
 
@@ -235,7 +235,7 @@ System check valid
 Removing `-w` will output results to stdout.
 
 ```
-$ certool -sign ./test.denver.journey.csr
+$ certs -sign ./test.denver.journey.csr
 -----BEGIN PRIVATE KEY-----
 MC4CAQAwBQYDK2VwBCIEIJPb+/pcWV/jbB0UBk6HpDhXVjTzm0ltnbefPxQmfrqi
 -----END PRIVATE KEY-----
@@ -266,8 +266,8 @@ MYQBgNVqhkgGEUFIkg5eVpBIHB5x38MLAw==
 ## Print certificate info
 
 ```
-$ certool -sign test.denver.journey -w
-$ certool -output ./test.denver.journey.crt
+$ certs -sign test.denver.journey -w
+$ certs -output ./test.denver.journey.crt
 DNSNames: [test.denver.journey]
 SerialNumber: 33402702424818636287940487352184976883
 
@@ -294,7 +294,7 @@ Signature:
 ## Print remote certificate chain
 
 ```
-$ certool -remote example.com:443
+$ certs -remote example.com:443
 DNSNames: [www.example.org example.com example.edu example.net example.org www.example.com www.example.edu www.example.net]
 SerialNumber: 21020869104500376438182461249190639870
 
