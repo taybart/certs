@@ -1,4 +1,4 @@
-package certool
+package certs
 
 import (
 	"crypto"
@@ -11,7 +11,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/journeyai/certool/scheme"
+	"github.com/taybart/certs/scheme"
 )
 
 // CA Certificate Authority

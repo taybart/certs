@@ -1,4 +1,4 @@
-package certool
+package certs
 
 import (
 	"crypto/tls"

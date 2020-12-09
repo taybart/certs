@@ -1,4 +1,4 @@
-package certool
+package certs
 
 import (
 	"bufio"
@@ -26,11 +26,11 @@ type Config struct {
 }
 
 var DefaultConfig = Config{
-	Dir: fmt.Sprintf("%s/.config/certool", os.Getenv("HOME")),
+	Dir: fmt.Sprintf("%s/.config/certs", os.Getenv("HOME")),
 	CA: CAConfig{
 		Name:   "My CA",
-		Key:    fmt.Sprintf("%s/.config/certool/%s.key", os.Getenv("HOME"), "ca.certool"),
-		Crt:    fmt.Sprintf("%s/.config/certool/%s.crt", os.Getenv("HOME"), "ca.certool"),
+		Key:    fmt.Sprintf("%s/.config/certs/%s.key", os.Getenv("HOME"), "ca.certs"),
+		Crt:    fmt.Sprintf("%s/.config/certs/%s.crt", os.Getenv("HOME"), "ca.certs"),
 		Scheme: "ed25519",
 	},
 }

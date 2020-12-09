@@ -12,8 +12,8 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/journeyai/certool"
-	"github.com/journeyai/certool/scheme"
+	"github.com/taybart/certs"
+	"github.com/taybart/certs/scheme"
 )
 
 var (
@@ -41,14 +41,14 @@ var (
 )
 
 func init() {
-	flag.StringVar(&configLocation, "c", certool.DefaultConfig.Dir, "Config file location")
+	flag.StringVar(&configLocation, "c", certs.DefaultConfig.Dir, "Config file location")
 	flag.StringVar(&sch, "scheme", "", "Cryptographic scheme for certs [ed25519, ecdsa{256, 384, 512}, rsa{2048, 4096}]")
 
 	flag.StringVar(&verify, "verify", "", "Check cert validity")
-	flag.BoolVar(&systemCA, "system", false, "Validate using certool CA")
+	flag.BoolVar(&systemCA, "system", false, "Validate using certs CA")
 
 	flag.StringVar(&output, "p", "", "Print certificate contents")
-	flag.BoolVar(&printcert, "cert", false, "Print certool certificate contents")
+	flag.BoolVar(&printcert, "cert", false, "Print certs certificate contents")
 
 	flag.BoolVar(&nopw, "no-pw", false, "Don't ask for a password (for pipes)")
 	flag.BoolVar(&pipe, "pipe", false, "Output will be piped")
@@ -73,13 +73,13 @@ func main() {
 }
 
 func run() error {
-	if configLocation == certool.DefaultConfig.Dir {
-		err := certool.LoadConfig(configLocation)
+	if configLocation == certs.DefaultConfig.Dir {
+		err := certs.LoadConfig(configLocation)
 		if err != nil {
 			return err
 		}
 	} else {
-		err := certool.LoadConfigFromFile(configLocation)
+		err := certs.LoadConfigFromFile(configLocation)
 		if err != nil {
 			return err
 		}
@@ -90,7 +90,7 @@ func run() error {
 	}
 
 	if printcert {
-		cert, err := certool.GetCACert()
+		cert, err := certs.GetCACert()
 		if err != nil {
 			return err
 		}
@@ -100,15 +100,15 @@ func run() error {
 	}
 
 	if sch == "" {
-		sch = certool.GetDefaultScheme()
+		sch = certs.GetDefaultScheme()
 	}
 
 	if edit {
-		return certool.EditConfig()
+		return certs.EditConfig()
 	}
 
 	if genCA {
-		if certool.CAExists() {
+		if certs.CAExists() {
 			reader := bufio.NewReader(os.Stdin)
 			fmt.Printf("CA has already been generated, delete and regenerate? [y/N] ")
 			val, err := reader.ReadString('\n')
@@ -121,7 +121,7 @@ func run() error {
 				return nil
 			}
 		}
-		_, err := certool.GenerateCA(sch)
+		_, err := certs.GenerateCA(sch)
 		return err
 	}
 
@@ -137,33 +137,33 @@ func run() error {
 
 	if verify != "" {
 		if isPath(verify) {
-			certs, err := certool.LoadCertificates(verify)
+			crts, err := certs.LoadCertificates(verify)
 			if err != nil {
 				err = fmt.Errorf("Issue loading cert %w", err)
 				return err
 			}
 
-			for _, cert := range certs {
-				fmt.Printf("%s\n\n", certool.HumanReadable(cert))
+			for _, crt := range crts {
+				fmt.Printf("%s\n\n", certs.HumanReadable(crt))
 			}
 
 			var dns string
-			if len(certs[0].DNSNames) > 0 {
-				dns = certs[0].DNSNames[0] // TODO pick which name to test
-			} else if certs[0].Subject.CommonName != "" {
-				dns = certs[0].Subject.CommonName
+			if len(crts[0].DNSNames) > 0 {
+				dns = crts[0].DNSNames[0] // TODO pick which name to test
+			} else if crts[0].Subject.CommonName != "" {
+				dns = crts[0].Subject.CommonName
 				fmt.Println("WARNING: Using common name for verification, this is not recommended")
 			} else {
 				return fmt.Errorf("No dns detected in cert")
 			}
 
 			intermediates := []*x509.Certificate{}
-			if len(certs) > 1 {
-				intermediates = certs[1:]
+			if len(crts) > 1 {
+				intermediates = crts[1:]
 			}
 
 			if systemCA {
-				err := certool.VerifySystemRoots(certs[0], intermediates, certs[0].DNSNames[0])
+				err := certs.VerifySystemRoots(crts[0], intermediates, crts[0].DNSNames[0])
 				if err != nil {
 					err = fmt.Errorf("Certificate invalid %w", err)
 					return err
@@ -172,13 +172,13 @@ func run() error {
 				return nil
 			}
 
-			ca, err := certool.LoadCA()
+			ca, err := certs.LoadCA()
 			if err != nil {
-				err = fmt.Errorf("Issue loading certool ca %w", err)
+				err = fmt.Errorf("Issue loading certs ca %w", err)
 				return err
 			}
 
-			err = certool.Verify(append(intermediates, ca.Cert), certs[0], dns)
+			err = certs.Verify(append(intermediates, ca.Cert), crts[0], dns)
 			if err != nil {
 				err = fmt.Errorf("Certificate invalid %w", err)
 				return err
@@ -194,24 +194,24 @@ func run() error {
 		}
 		host := matches[0][1]
 		port := matches[0][2]
-		chain, err := certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", host, port))
+		chain, err := certs.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", host, port))
 		if err != nil {
 			err = fmt.Errorf("Issue grabbing remote cert %w", err)
 			return err
 		}
 
 		fmt.Println(host)
-		err = certool.Verify(chain[1:], chain[0], host)
+		err = certs.Verify(chain[1:], chain[0], host)
 		if err != nil {
 			err = fmt.Errorf("Certificate chain invalid %w", err)
 			return err
 		}
 
-		fmt.Printf("%v\n\n", certool.HumanReadable(chain[0]))
+		fmt.Printf("%v\n\n", certs.HumanReadable(chain[0]))
 		fmt.Println("Remote chain valid")
 
 		if systemCA {
-			err = certool.VerifySystemRoots(chain[0], chain[1:], host)
+			err = certs.VerifySystemRoots(chain[0], chain[1:], host)
 			if err != nil {
 				err = fmt.Errorf("Certificate invalid %w", err)
 				return err
@@ -220,13 +220,13 @@ func run() error {
 			return nil
 		}
 
-		ca, err := certool.LoadCA()
+		ca, err := certs.LoadCA()
 		if err != nil {
-			err = fmt.Errorf("Issue loading certool ca %w", err)
+			err = fmt.Errorf("Issue loading certs ca %w", err)
 			return err
 		}
 
-		err = certool.Verify([]*x509.Certificate{ca.Cert}, chain[0], host)
+		err = certs.Verify([]*x509.Certificate{ca.Cert}, chain[0], host)
 		if err != nil {
 			err = fmt.Errorf("Certificate invalid %w", err)
 			return err
@@ -237,13 +237,13 @@ func run() error {
 
 	if output != "" {
 		if isPath(output) {
-			certs, err := certool.LoadCertificates(output)
+			crts, err := certs.LoadCertificates(output)
 			if err != nil {
 				err = fmt.Errorf("Issue loading cert %w", err)
 				return err
 			}
-			for _, cert := range certs {
-				fmt.Println(certool.HumanReadable(cert))
+			for _, crt := range crts {
+				fmt.Println(certs.HumanReadable(crt))
 			}
 			return nil
 		}
@@ -255,13 +255,13 @@ func run() error {
 		}
 		host := matches[0][1]
 		port := matches[0][2]
-		chain, err := certool.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", host, port))
+		chain, err := certs.GetPeerServerCertificateChain(fmt.Sprintf("%s:%s", host, port))
 		if err != nil {
 			err = fmt.Errorf("Issue grabbing remote cert %w", err)
 			return err
 		}
 		for _, c := range chain {
-			fmt.Println(certool.HumanReadable(c))
+			fmt.Println(certs.HumanReadable(c))
 		}
 		return nil
 	}
@@ -280,7 +280,7 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(certool.HumanReadable(cert))
+		fmt.Println(certs.HumanReadable(cert))
 		return nil
 	}
 	flag.Usage()
@@ -318,14 +318,14 @@ func createCSR() (csr *x509.CertificateRequest, err error) {
 	}
 
 	if write {
-		err = certool.MarshalCSRToPem(csr)
+		err = certs.MarshalCSRToPem(csr)
 		if err != nil {
 			return
 		}
-		certool.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
+		certs.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
 	} else {
 		if pipe {
-			certool.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
+			certs.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
 		} else {
 			fmt.Printf(string(pem.EncodeToMemory(skPem)))
 		}
@@ -369,7 +369,7 @@ func signRequest() (err error) {
 		}
 	}
 
-	ca, err := certool.LoadCA()
+	ca, err := certs.LoadCA()
 	if err != nil {
 		return
 	}
@@ -397,13 +397,13 @@ func signRequest() (err error) {
 		return
 	}
 
-	err = certool.Verify([]*x509.Certificate{ca.Cert}, cert, csrhost)
+	err = certs.Verify([]*x509.Certificate{ca.Cert}, cert, csrhost)
 	if err != nil {
 		return
 	}
 
 	if write {
-		err = certool.MarshalCertificateToPem(cert)
+		err = certs.MarshalCertificateToPem(cert)
 		if err != nil {
 			return
 		}
