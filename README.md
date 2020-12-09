@@ -2,8 +2,6 @@
 
 A tool for dealing with certificates.
 
-![certs](assets/certs.png)
-
 ## Table of Contents
 
 [Installation](#installation)
