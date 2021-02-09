@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"crypto/x509"
 	"encoding/pem"
+	"errors"
 	"flag"
 	"fmt"
 	"io"
@@ -18,6 +19,7 @@ import (
 
 var (
 	configLocation string
+	profileName    string
 
 	sch string
 
@@ -42,6 +44,7 @@ var (
 
 func init() {
 	flag.StringVar(&configLocation, "c", certs.DefaultConfig.Dir, "Config file location")
+	flag.StringVar(&profileName, "profile", "", "Profile name")
 	flag.StringVar(&sch, "scheme", "", "Cryptographic scheme for certs [ed25519, ecdsa{256, 384, 512}, rsa{2048, 4096}]")
 
 	flag.StringVar(&verify, "verify", "", "Check cert validity")
@@ -73,15 +76,31 @@ func main() {
 }
 
 func run() error {
-	if configLocation == certs.DefaultConfig.Dir {
+	if profileName != "" {
+		if configLocation != certs.DefaultConfig.Dir {
+			return errors.New("Cannot use profile if config locaion is also defined")
+		}
+		configLocation = fmt.Sprintf("%s/%s", configLocation, profileName)
+		if _, err := os.Stat(configLocation); os.IsNotExist(err) {
+			return errors.New("Profile does not exist")
+		}
+
 		err := certs.LoadConfig(configLocation)
 		if err != nil {
 			return err
 		}
+
 	} else {
-		err := certs.LoadConfigFromFile(configLocation)
-		if err != nil {
-			return err
+		if configLocation == certs.DefaultConfig.Dir {
+			err := certs.LoadConfig(configLocation)
+			if err != nil {
+				return err
+			}
+		} else {
+			err := certs.LoadConfigFromFile(configLocation)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
@@ -94,7 +113,10 @@ func run() error {
 		if err != nil {
 			return err
 		}
-		fmt.Println(string(pem.EncodeToMemory(&pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})))
+		fmt.Println(string(pem.EncodeToMemory(&pem.Block{
+			Type:  "CERTIFICATE",
+			Bytes: cert.Raw,
+		})))
 		return nil
 
 	}
