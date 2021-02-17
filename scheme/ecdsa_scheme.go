@@ -104,7 +104,7 @@ func (e *ECDSAScheme) GenerateDefaultCSR(dns string) (skPem *pem.Block, csr *x50
 		PublicKey:          &e.pk,
 		Subject: pkix.Name{
 			CommonName:         dns,
-			Organization:       []string{"Journey"},
+			Organization:       []string{"Company"},
 			OrganizationalUnit: []string{"Engineering"},
 			Country:            []string{"US"},
 			Province:           []string{"Colorado"},

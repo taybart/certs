@@ -10,21 +10,21 @@ A tool for dealing with certificates.
 
 [Usage](#usage)
 
-  * [Generating a Certificate Authority](#generating-a-certificate-authority)
+- [Generating a Certificate Authority](#generating-a-certificate-authority)
 
-  * [Create CSR](#create-csr)
+- [Create CSR](#create-csr)
 
-  * [Create and sign request](#create-and-sign-request)
+- [Create and sign request](#create-and-sign-request)
 
-    * [Output to stdout](#output-to-stdout)
+  - [Output to stdout](#output-to-stdout)
 
-  * [Validate certificate](#validate-certificate)
+- [Validate certificate](#validate-certificate)
 
-  * [Validate remote certificate](#validate-remote-certificate)
+- [Validate remote certificate](#validate-remote-certificate)
 
-  * [Print certificate info](#print-certificate-info)
+- [Print certificate info](#print-certificate-info)
 
-  * [Print remote certificate chain](#print-remote-certificate-chain)
+- [Print remote certificate chain](#print-remote-certificate-chain)
 
 [Todo](#todo)
 
@@ -37,15 +37,15 @@ $ go get -u github.com/taybart/certs/cmd/certs
 # Configuration
 
 Cert's configuration lives at `$HOME/.config/certs/config.json`
-Using `""` as the key will prompt for the password during the command, this is the recommended use.  Setting the password to `_` will not add a password to the ca key.
+Using `""` as the key will prompt for the password during the command, this is the recommended use. Setting the password to `_` will not add a password to the ca key.
 
 ```json
 {
- "ca": {
-   "name": "ca.journey",
-   "key": "/home/user/.config/certs/ca.journey.key",
-   "crt": "/home/user/.config/certs/ca.journey.crt",
-   "scheme": "ed25519"
+  "ca": {
+    "name": "my-ca",
+    "key": "/home/user/.config/certs/ca.key",
+    "crt": "/home/user/.config/certs/ca.crt",
+    "scheme": "ed25519"
   }
 }
 ```
@@ -86,7 +86,7 @@ $ certs -gen
 ## Create CSR
 
 ```
-$ certs -w -csr test.denver.journey
+$ certs -w -csr test.localhost
 ```
 
 ### From file
@@ -115,7 +115,7 @@ $ certs -w -csr ./csr.json
 ## Sign request
 
 ```
-$ certs -w -sign -f ./test.denver.journey.csr
+$ certs -w -sign -f ./test.localhost.csr
 ```
 
 ## Create CSR and sign
@@ -131,16 +131,16 @@ CA Password (hit enter if unencrypted)
 **System roots**
 
 ```
-$ certs -verify -system ./test.denver.journey.crt
-DNSNames: [test.denver.journey]
+$ certs -verify -system ./test.localhost.crt
+DNSNames: [test.localhost]
 SerialNumber: 33402702424818636287940487352184976883
 
-Subject: test.denver.journey
-         Journey Engineering
+Subject: test.localhost
+         Company
          1999 Broadway St, Denver Colorado
 
-Issuer:  ca.journey
-         Journey Engineering
+Issuer:  my-ca
+         Company
          1999 Broadway St, Denver Colorado
 
 KeyUsage: [DigitalSignature CRLSign]
@@ -161,17 +161,17 @@ exit status 1
 **Certs CA**
 
 ```
-$ certs -verify ./test.denver.journey.crt
-DNSNames: [test.denver.journey]
+$ certs -verify ./test.localhost.crt
+DNSNames: [test.localhost]
 SerialNumber: 33402702424818636287940487352184976883
 
-Subject: test.denver.journey
-         Journey Engineering
-         1999 Broadway St, Denver Colorado
+Subject: test.localhost
+         Company
+         1234 Real St, Denver Colorado
 
-Issuer:  ca.journey
-         Journey Engineering
-         1999 Broadway St, Denver Colorado
+Issuer:  ca
+         Company
+         1234 Real St, Denver Colorado
 
 KeyUsage: [CRLSign DigitalSignature]
 ExtKeyUsage: [ServerAuth OCSPSigning]
@@ -233,30 +233,17 @@ System check valid
 Removing `-w` will output results to stdout.
 
 ```
-$ certs -sign ./test.denver.journey.csr
+$ certs -sign ./test.localhost.csr
 -----BEGIN PRIVATE KEY-----
-MC4CAQAwBQYDK2VwBCIEIJPb+/pcWV/jbB0UBk6HpDhXVjTzm0ltnbefPxQmfrqi
+KEY
 -----END PRIVATE KEY-----
 
 -----BEGIN CERTIFICATE REQUEST-----
-MIHiMIGVAgEAMDExCzAJBgNVBAYTAlVTMREwDwYDVQQIEwhDb2xvcmFkbzEPMA0G
-A1UEBxMGRGVudmVyMCowBQYDK2VwAyEAsc5zbIvKOpO9Xcj9+U1TgQLC3jCHsigR
-DUEYmBCw9MWgMTAvBgkqhkiG9w0BCQ4xIjAgMB4GA1UdEQQXMBWCE3Rlc3QuZGVu
-dmVyLmpvdXJuZXkwBQYDK2VwA0EAHrfnkkoajJyQhZlxZ4JGSkVFuTQwWGoFu5fc
-yaClbZ+WXp1ggiPri18xiO/8+xDD6sm5xjRwv9u8sodNlXMbBg==
+CSR
 -----END CERTIFICATE REQUEST-----
 
 -----BEGIN CERTIFICATE-----
-MIIBxTCCAXegAwIBAgIRAJgVdYAMHbthuWXBplmyq/QwBQYDK2VwMIGDMQswCQYD
-VQQGEwJVUzERMA8GA1UECBMIQ29sb3JhZG8xDzANBgNVBAcTBkRlbnZlcjEZMBcG
-A1UECRMQMTk5OSBCcm9hZHdheSBTdDEOMAwGA1UEERMFODAyMDIxEDAOBgNVBAoT
-B0pvdXJuZXkxEzARBgNVBAMTCmNhLmpvdXJuZXkwHhcNMjAwNzAzMTcxODUyWhcN
-MjEwNzAzMTcxODUyWjAxMQswCQYDVQQGEwJVUzERMA8GA1UECBMIQ29sb3JhZG8x
-DzANBgNVBAcTBkRlbnZlcjAqMAUGAytlcAMhALHOc2yLyjqTvV3I/flNU4ECwt4w
-h7IoEQ1BGJgQsPTFo1EwTzAOBgNVHQ8BAf8EBAMCAYIwHQYDVR0lBBYwFAYIKwYB
-BQUHAwEGCCsGAQUFBwMJMB4GA1UdEQQXMBWCE3Rlc3QuZGVudmVyLmpvdXJuZXkw
-BQYDK2VwA0EA8MNcJTGPDDXQ/p4uow6/vwZSfjS6+OgeIAU4AaivJpE20uU2+H8n
-MYQBgNVqhkgGEUFIkg5eVpBIHB5x38MLAw==
+CERTIFICATE
 -----END CERTIFICATE-----
 
 ```
@@ -264,17 +251,17 @@ MYQBgNVqhkgGEUFIkg5eVpBIHB5x38MLAw==
 ## Print certificate info
 
 ```
-$ certs -sign test.denver.journey -w
-$ certs -output ./test.denver.journey.crt
-DNSNames: [test.denver.journey]
+$ certs -sign test.localhost -w
+$ certs -output ./test.localhost.crt
+DNSNames: [test.localhost]
 SerialNumber: 33402702424818636287940487352184976883
 
-Subject: test.denver.journey
-         Journey Engineering
+Subject: test.localhost
+         Company
          1999 Broadway St, Denver Colorado
 
-Issuer:  ca.journey
-         Journey Engineering
+Issuer:  my-ca
+         Company
          1999 Broadway St, Denver Colorado
 
 KeyUsage: [CRLSign DigitalSignature]
@@ -389,7 +376,6 @@ Signature:
 ```
 
 # Todo
-
 
 - [x] ~Validate and print remote TLS certificates [HTTP/1.1]~
 

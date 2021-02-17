@@ -59,7 +59,7 @@ func GenerateCA(sch string) (ca CA, err error) {
 		SerialNumber: big.NewInt(1),
 		Subject: pkix.Name{
 			CommonName:         config.CA.Name,
-			Organization:       []string{"Journey"},
+			Organization:       []string{"Company"},
 			OrganizationalUnit: []string{"Engineering"},
 			Country:            []string{"US"},
 			Province:           []string{"Colorado"},

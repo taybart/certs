@@ -84,7 +84,7 @@ func (e *Ed25519Scheme) GenerateDefaultCSR(dns string) (skPem *pem.Block, csr *x
 		PublicKey:          e.pk,
 		Subject: pkix.Name{
 			CommonName:         dns,
-			Organization:       []string{"Journey"},
+			Organization:       []string{"Company"},
 			OrganizationalUnit: []string{"Engineering"},
 			Country:            []string{"US"},
 			Province:           []string{"Colorado"},
