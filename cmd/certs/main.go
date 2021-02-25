@@ -344,17 +344,23 @@ func createCSR() (csr *x509.CertificateRequest, err error) {
 		if err != nil {
 			return
 		}
-		certs.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
+		err = certs.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
+		if err != nil {
+			return
+		}
 	} else {
 		if pipe {
-			certs.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
+			err = certs.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
+			if err != nil {
+				return
+			}
 		} else {
-			fmt.Printf(string(pem.EncodeToMemory(skPem)))
+			fmt.Printf("%s", pem.EncodeToMemory(skPem))
 		}
-		fmt.Printf(string(pem.EncodeToMemory(&pem.Block{
+		fmt.Printf("%s", pem.EncodeToMemory(&pem.Block{
 			Type:  "CERTIFICATE REQUEST",
 			Bytes: csr.Raw,
-		})))
+		}))
 	}
 	return
 }
@@ -373,6 +379,9 @@ func signRequest() (err error) {
 		}
 		block, _ := pem.Decode([]byte(string(output)))
 		csr, err = x509.ParseCertificateRequest(block.Bytes)
+		if err != nil {
+			panic(err)
+		}
 	} else if file != "" {
 		var b []byte
 		b, err = ioutil.ReadFile(file)

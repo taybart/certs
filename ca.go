@@ -37,6 +37,9 @@ func GenerateCA(sch string) (ca CA, err error) {
 		return
 	}
 	skPem, err := s.PrivateKeyToPem()
+	if err != nil {
+		return
+	}
 	err = pem.Encode(out, skPem)
 	if err != nil {
 		return

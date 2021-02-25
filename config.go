@@ -67,7 +67,11 @@ func (c *Config) FirstRun() (err error) {
 		}
 		var buf bytes.Buffer
 		t := template.Must(template.New("conf").Parse(res))
-		t.Execute(&buf, env)
+		err = t.Execute(&buf, env)
+		if err != nil {
+			return
+		}
+
 		reflect.ValueOf(&c.CA).Elem().Field(i).SetString(buf.String())
 	}
 	return
@@ -108,8 +112,14 @@ func LoadConfig(configLocation string) (err error) {
 	}
 	if _, err = os.Stat(fmt.Sprintf("%s/config.json", config.Dir)); os.IsNotExist(err) {
 		err = nil
-		config.FirstRun()
-		config.Save()
+		err = config.FirstRun()
+		if err != nil {
+			panic(fmt.Errorf("Could not set up config %w", err))
+		}
+		err = config.Save()
+		if err != nil {
+			panic(fmt.Errorf("Could not save new config %w", err))
+		}
 	} else if err != nil {
 		return err
 	}
@@ -163,7 +173,7 @@ func (c *Config) GetCAPassword() []byte {
 
 func readConfigVar(prompt string) (val string, err error) {
 	reader := bufio.NewReader(os.Stdin)
-	fmt.Printf(prompt)
+	fmt.Printf("%s", prompt)
 	val, err = reader.ReadString('\n')
 	if err != nil {
 		return

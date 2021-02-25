@@ -58,7 +58,6 @@ func SchemeFromKey(sk crypto.PrivateKey, pk crypto.PublicKey) (sch Scheme, err e
 		sch = NewECDSASchemeFromKeys(sk.(*ecdsa.PrivateKey), pk.(*ecdsa.PublicKey))
 	case rsa.PrivateKey:
 		sch = NewRSASchemeFromKeys(sk.(*rsa.PrivateKey), pk.(*rsa.PublicKey))
-		break
 	default:
 		err = fmt.Errorf("unknown key scheme %s", sch)
 	}
