@@ -12,14 +12,14 @@ import (
 
 type Subject struct {
 	SerialNumber       string   `json:"serial_number,omitempty"`
-	CommonName         string   `json:"common_name,omitempty"`
-	OrganizationalUnit []string `json:"organizational_unit,omitempty"`
-	Organization       []string `json:"organization,omitempty"`
-	StreetAddress      []string `json:"street_address,omitempty"`
-	PostalCode         []string `json:"postal_code,omitempty"`
-	Locality           []string `json:"locality,omitempty"`
-	Province           []string `json:"province,omitempty"`
-	Country            []string `json:"country,omitempty"`
+	CommonName         string   `json:"common_name,omitempty" label:"Common Name"`
+	OrganizationalUnit []string `json:"organizational_unit,omitempty" label:"Organizational Unit"`
+	Organization       []string `json:"organization,omitempty" label:"Organization"`
+	StreetAddress      []string `json:"street_address,omitempty" label:"Street Address"`
+	PostalCode         []string `json:"postal_code,omitempty" label:"Postal Code"`
+	Locality           []string `json:"locality,omitempty" label:"Locality [ex. Denver]"`
+	Province           []string `json:"province,omitempty" label:"Province [ex. Colorado]"`
+	Country            []string `json:"country,omitempty" label:"Country [ex. US]"`
 }
 
 type CSR struct {
@@ -28,6 +28,19 @@ type CSR struct {
 	Scheme   string   `json:"scheme,omitempty"`
 }
 
+func (s Subject) ToPKIXName() pkix.Name {
+	return pkix.Name{
+		SerialNumber:       s.SerialNumber,
+		CommonName:         s.CommonName,
+		OrganizationalUnit: s.OrganizationalUnit,
+		Organization:       s.Organization,
+		StreetAddress:      s.StreetAddress,
+		PostalCode:         s.PostalCode,
+		Locality:           s.Locality,
+		Province:           s.Province,
+		Country:            s.Country,
+	}
+}
 func CSRFromFile(filename string) (skPem *pem.Block, csr *x509.CertificateRequest, err error) {
 	b, err := ioutil.ReadFile(filename)
 	if err != nil {

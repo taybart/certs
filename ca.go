@@ -4,7 +4,6 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -12,6 +11,7 @@ import (
 	"time"
 
 	"github.com/taybart/certs/scheme"
+	"github.com/taybart/log"
 )
 
 // CA Certificate Authority
@@ -60,19 +60,10 @@ func GenerateCA(sch string) (ca CA, err error) {
 		PublicKey:          csr.PublicKey,
 
 		SerialNumber: big.NewInt(1),
-		Subject: pkix.Name{
-			CommonName:         config.CA.Name,
-			Organization:       []string{"Company"},
-			OrganizationalUnit: []string{"Engineering"},
-			Country:            []string{"US"},
-			Province:           []string{"Colorado"},
-			Locality:           []string{"Denver"},
-			StreetAddress:      []string{""},
-			PostalCode:         []string{""},
-		},
-		DNSNames:  []string{config.CA.Name},
-		NotBefore: time.Now(),
-		NotAfter:  time.Now().AddDate(10, 0, 0),
+		Subject:      config.DefaultSubject.ToPKIXName(),
+		DNSNames:     []string{config.CA.Name},
+		NotBefore:    time.Now(),
+		NotAfter:     time.Now().AddDate(10, 0, 0),
 
 		IsCA:                  true,
 		BasicConstraintsValid: true,
@@ -118,10 +109,10 @@ func LoadCA() (ca CA, err error) {
 	if x509.IsEncryptedPEMBlock(keys[0]) {
 		keybytes, err = x509.DecryptPEMBlock(keys[0], config.GetCAPassword())
 		if err != nil {
-			fmt.Printf("\033[31m✗\033[0m\n")
+			fmt.Println(log.Red, "✗", log.Rtd)
 			return
 		}
-		fmt.Printf("\033[32m✓\033[0m\n")
+		fmt.Println(log.Green, "✓", log.Rtd)
 	}
 	sk, err := x509.ParsePKCS8PrivateKey(keybytes)
 	if err != nil {

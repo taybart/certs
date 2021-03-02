@@ -1,3 +1,5 @@
+github.com/taybart/log v1.3.0 h1:v3v+1npucrFWkiQ/0LEka/AzwnyTBk200ioYZOFybhg=
+github.com/taybart/log v1.3.0/go.mod h1:e9MmKdjMsNxSFbn46ag778NSmhFrx9yLC60CDRRcSOo=
 golang.org/x/crypto v0.0.0-20190308221718-c2843e01d9a2/go.mod h1:djNgcEr1/C05ACkg1iLfiJU5Ep61QUkGW8qpdssI0+w=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9 h1:psW17arqaxU48Z5kZ0CQnkZWQJsqcURM6tKiBApRjXI=
 golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9/go.mod h1:LzIPMQfyMNhhGPhUkYOs5KpL4U8rLKemX1yGLhDgUto=
