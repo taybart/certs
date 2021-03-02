@@ -200,7 +200,7 @@ func run() error {
 				return err
 			}
 
-			err = certs.Verify(append(intermediates, ca.Cert), crts[0], dns)
+			err = certs.Verify(crts[0], append(intermediates, ca.Cert), dns)
 			if err != nil {
 				err = fmt.Errorf("Certificate invalid %w", err)
 				return err
@@ -223,13 +223,15 @@ func run() error {
 		}
 
 		fmt.Println(host)
-		err = certs.Verify(chain[1:], chain[0], host)
+		err = certs.Verify(chain[0], chain[1:], host)
 		if err != nil {
 			err = fmt.Errorf("Certificate chain invalid %w", err)
 			return err
 		}
 
-		fmt.Printf("%v\n\n", certs.HumanReadable(chain[0]))
+		for _, c := range chain {
+			fmt.Printf("%v\n\n", certs.HumanReadable(c))
+		}
 		fmt.Println("Remote chain valid")
 
 		if systemCA {
@@ -248,7 +250,7 @@ func run() error {
 			return err
 		}
 
-		err = certs.Verify([]*x509.Certificate{ca.Cert}, chain[0], host)
+		err = certs.Verify(chain[0], []*x509.Certificate{ca.Cert}, host)
 		if err != nil {
 			err = fmt.Errorf("Certificate invalid %w", err)
 			return err
@@ -428,7 +430,7 @@ func signRequest() (err error) {
 		return
 	}
 
-	err = certs.Verify([]*x509.Certificate{ca.Cert}, cert, csrhost)
+	err = certs.Verify(cert, []*x509.Certificate{ca.Cert}, csrhost)
 	if err != nil {
 		return
 	}

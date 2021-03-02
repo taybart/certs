@@ -155,7 +155,7 @@ func getExtKeyUsage(cert *x509.Certificate) (extkeyusages []string) {
 	return
 }
 
-func Verify(chain []*x509.Certificate, cert *x509.Certificate, dns string) (err error) {
+func Verify(cert *x509.Certificate, chain []*x509.Certificate, dns string) (err error) {
 	roots := x509.NewCertPool()
 	for _, c := range chain {
 		roots.AddCert(c)
