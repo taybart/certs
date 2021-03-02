@@ -14,7 +14,8 @@ import (
 )
 
 var (
-	noPw = false
+	noPw           = false
+	defaultSubject = Subject{}
 )
 
 type Scheme interface {
@@ -62,6 +63,10 @@ func SchemeFromKey(sk crypto.PrivateKey, pk crypto.PublicKey) (sch Scheme, err e
 		err = fmt.Errorf("unknown key scheme %s", sch)
 	}
 	return
+}
+
+func SetDefaultSubject(s Subject) {
+	defaultSubject = s
 }
 
 func SetNoPw() {

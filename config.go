@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"html/template"
 	"io/ioutil"
@@ -12,6 +13,9 @@ import (
 	"strings"
 
 	"golang.org/x/crypto/ssh/terminal"
+
+	"github.com/taybart/certs/scheme"
+	"github.com/taybart/log"
 )
 
 type CAConfig struct {
@@ -21,17 +25,28 @@ type CAConfig struct {
 	Scheme string `json:"scheme,omitempty" label:"Cryptographic scheme"`
 }
 type Config struct {
-	Dir string   `json:"-"`
-	CA  CAConfig `json:"ca" label:""`
+	Dir            string         `json:"-"`
+	CA             CAConfig       `json:"ca" label:""`
+	DefaultSubject scheme.Subject `json:"default_subject"`
 }
 
 var DefaultConfig = Config{
 	Dir: fmt.Sprintf("%s/.config/certs", os.Getenv("HOME")),
 	CA: CAConfig{
 		Name:   "My CA",
-		Key:    fmt.Sprintf("%s/.config/certs/%s.key", os.Getenv("HOME"), "ca.certs"),
-		Crt:    fmt.Sprintf("%s/.config/certs/%s.crt", os.Getenv("HOME"), "ca.certs"),
-		Scheme: "ed25519",
+		Key:    fmt.Sprintf("%s/.config/certs/ca.key", os.Getenv("HOME")),
+		Crt:    fmt.Sprintf("%s/.config/certs/ca.crt", os.Getenv("HOME")),
+		Scheme: "ecdsa256",
+	},
+	DefaultSubject: scheme.Subject{
+		CommonName:         "taybart",
+		OrganizationalUnit: []string{"Engineering"},
+		Organization:       []string{"taybart"},
+		StreetAddress:      []string{""},
+		PostalCode:         []string{""},
+		Locality:           []string{""},
+		Province:           []string{""},
+		Country:            []string{""},
 	},
 }
 
@@ -44,8 +59,9 @@ func (c *Config) FirstRun() (err error) {
 		env[split[0]] = split[1]
 	}
 
-	fmt.Printf("\033[32mCould not load config, let's set up.\n\n")
-	fmt.Printf("\033[33mNote: ENV vars look like this -> {{ .HOME }} => %s\033[0m\n\n", env["HOME"])
+	fmt.Printf("%sError:%s Could not load config, let's set up.\n", log.Red, log.Rtd)
+	fmt.Printf("%sNote:%s You can use ENV vars like this -> {{ .HOME }} => %s\n", log.Yellow, log.Rtd, env["HOME"])
+	fmt.Printf("      Hit enter to use default values, labeled with (%svalue%s)\n\n", log.Blue, log.Rtd)
 	rt := reflect.TypeOf(c.CA)
 	if rt.Kind() != reflect.Struct {
 		err = fmt.Errorf("issue getting config fields")
@@ -57,7 +73,7 @@ func (c *Config) FirstRun() (err error) {
 		defaultValue := reflect.ValueOf(DefaultConfig.CA).Field(i).String()
 
 		var res string
-		res, err = readConfigVar(fmt.Sprintf("Enter %s (default: %s) -> ", f.Tag.Get("label"), defaultValue))
+		res, err = readConfigVar(formatVarPrompt(f.Tag.Get("label"), defaultValue))
 		if err != nil {
 			return
 		}
@@ -73,6 +89,63 @@ func (c *Config) FirstRun() (err error) {
 		}
 
 		reflect.ValueOf(&c.CA).Elem().Field(i).SetString(buf.String())
+	}
+
+	rt = reflect.TypeOf(c.DefaultSubject)
+	if rt.Kind() != reflect.Struct {
+		err = fmt.Errorf("issue getting config fields")
+		return
+	}
+	fmt.Println("Default CSR Subject...")
+	for i := 0; i < rt.NumField(); i++ {
+		f := rt.Field(i)
+		if f.Tag.Get("label") == "" {
+			continue
+		}
+		var res string
+		switch f.Type.Kind() {
+		case reflect.String:
+			d := reflect.ValueOf(DefaultConfig.DefaultSubject).Field(i).String()
+
+			res, err = readConfigVar(formatVarPrompt(f.Tag.Get("label"), d))
+			if err != nil {
+				return
+			}
+			if res == "" {
+				reflect.ValueOf(&c.DefaultSubject).Elem().Field(i).SetString(d)
+				continue
+			}
+			var buf bytes.Buffer
+			t := template.Must(template.New("conf").Parse(res))
+			err = t.Execute(&buf, env)
+			if err != nil {
+				return
+			}
+			reflect.ValueOf(&c.CA).Elem().Field(i).SetString(buf.String())
+
+		case reflect.Slice:
+			sf := reflect.ValueOf(DefaultConfig.DefaultSubject).Field(i)
+			res, err = readConfigVar(formatVarPrompt(f.Tag.Get("label"), sf))
+			if err != nil {
+				return
+			}
+			if res == "" {
+				reflect.ValueOf(&c.DefaultSubject).Elem().Field(i).Set(sf)
+				continue
+			}
+			var buf bytes.Buffer
+			t := template.Must(template.New("conf").Parse(res))
+			err = t.Execute(&buf, env)
+			if err != nil {
+				return
+			}
+
+			arr := strings.Split(buf.String(), ",")
+			reflect.ValueOf(&c.DefaultSubject).Elem().Field(i).Set(reflect.ValueOf(arr))
+		default:
+			err = errors.New("Unkown field in config")
+			return
+		}
 	}
 	return
 }
@@ -134,6 +207,8 @@ func LoadConfig(configLocation string) (err error) {
 		err = fmt.Errorf("issue reading config %w", err)
 		return
 	}
+	// Set default Subject
+	scheme.SetDefaultSubject(config.DefaultSubject)
 
 	return
 }
@@ -152,6 +227,9 @@ func LoadConfigFromFile(location string) (err error) {
 	return
 }
 
+func GetDefaultSubject() scheme.Subject {
+	return config.DefaultSubject
+}
 func GetDefaultScheme() string {
 	return config.CA.Scheme
 }
@@ -169,6 +247,12 @@ func (c *Config) GetCAPassword() []byte {
 
 	return bytePassword
 
+}
+
+func formatVarPrompt(label string, defaultValue interface{}) string {
+	return fmt.Sprintf("%s%s%s (%s%s%s) -> ",
+		log.BoldGreen, label, log.Rtd,
+		log.Blue, defaultValue, log.Rtd)
 }
 
 func readConfigVar(prompt string) (val string, err error) {

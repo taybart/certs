@@ -5,7 +5,6 @@ import (
 	"crypto/ed25519"
 	"crypto/rand"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -78,21 +77,15 @@ func (e *Ed25519Scheme) GenerateDefaultCSR(dns string) (skPem *pem.Block, csr *x
 		}
 	}
 
+	sub := defaultSubject.ToPKIXName()
+	sub.CommonName = dns
+
 	csr = &x509.CertificateRequest{
 		SignatureAlgorithm: x509.PureEd25519,
 		PublicKeyAlgorithm: x509.Ed25519,
 		PublicKey:          e.pk,
-		Subject: pkix.Name{
-			CommonName:         dns,
-			Organization:       []string{"Company"},
-			OrganizationalUnit: []string{"Engineering"},
-			Country:            []string{"US"},
-			Province:           []string{"Colorado"},
-			Locality:           []string{"Denver"},
-			StreetAddress:      []string{""},
-			PostalCode:         []string{""},
-		},
-		DNSNames: []string{dns},
+		Subject:            sub,
+		DNSNames:           []string{dns},
 	}
 	csrbytes, err := x509.CreateCertificateRequest(rand.Reader, csr, e.sk)
 	if err != nil {

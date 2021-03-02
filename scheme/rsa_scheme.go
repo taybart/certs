@@ -5,7 +5,6 @@ import (
 	"crypto/rand"
 	"crypto/rsa"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -87,21 +86,15 @@ func (r *RSAScheme) GenerateDefaultCSR(dns string) (skPem *pem.Block, csr *x509.
 		err = fmt.Errorf("issue generating keys for scheme %s %w", r.String(), err)
 		return
 	}
+
+	sub := defaultSubject.ToPKIXName()
+	sub.CommonName = dns
 	csr = &x509.CertificateRequest{
 		SignatureAlgorithm: x509.SHA256WithRSA,
 		PublicKeyAlgorithm: x509.RSA,
 		PublicKey:          pk,
-		Subject: pkix.Name{
-			CommonName:         dns,
-			Organization:       []string{"Company"},
-			OrganizationalUnit: []string{"Engineering"},
-			Country:            []string{"US"},
-			Province:           []string{"Colorado"},
-			Locality:           []string{"Denver"},
-			StreetAddress:      []string{""},
-			PostalCode:         []string{""},
-		},
-		DNSNames: []string{dns},
+		Subject:            sub,
+		DNSNames:           []string{dns},
 	}
 	csrbytes, err := x509.CreateCertificateRequest(rand.Reader, csr, sk)
 	if err != nil {

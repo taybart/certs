@@ -6,7 +6,6 @@ import (
 	"crypto/elliptic"
 	"crypto/rand"
 	"crypto/x509"
-	"crypto/x509/pkix"
 	"encoding/pem"
 	"fmt"
 	"os"
@@ -98,21 +97,15 @@ func (e *ECDSAScheme) GenerateDefaultCSR(dns string) (skPem *pem.Block, csr *x50
 		}
 	}
 
+	sub := defaultSubject.ToPKIXName()
+	sub.CommonName = dns
+
 	csr = &x509.CertificateRequest{
 		SignatureAlgorithm: x509.ECDSAWithSHA256,
 		PublicKeyAlgorithm: x509.ECDSA,
 		PublicKey:          &e.pk,
-		Subject: pkix.Name{
-			CommonName:         dns,
-			Organization:       []string{"Company"},
-			OrganizationalUnit: []string{"Engineering"},
-			Country:            []string{"US"},
-			Province:           []string{"Colorado"},
-			Locality:           []string{"Denver"},
-			StreetAddress:      []string{""},
-			PostalCode:         []string{""},
-		},
-		DNSNames: []string{dns},
+		Subject:            sub,
+		DNSNames:           []string{dns},
 	}
 	csrbytes, err := x509.CreateCertificateRequest(rand.Reader, csr, e.sk)
 	if err != nil {
