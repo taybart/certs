@@ -46,6 +46,16 @@ Using `""` as the key will prompt for the password during the command, this is t
     "key": "/home/user/.config/certs/ca.key",
     "crt": "/home/user/.config/certs/ca.crt",
     "scheme": "ed25519"
+  },
+  "default_subject": {
+    "common_name": "taybart",
+    "organizational_unit": ["Engineering"],
+    "organization": ["taybart"],
+    "street_address": [""],
+    "postal_code": [""],
+    "locality": [""],
+    "province": [""],
+    "country": [""]
   }
 }
 ```
