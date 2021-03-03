@@ -40,6 +40,8 @@ var (
 	signCA bool
 	sign   bool
 	file   string
+
+	hostportRe = regexp.MustCompile(`([[:alnum:]\-\.]+):([[:digit:]]+)`)
 )
 
 func init() {
@@ -209,8 +211,7 @@ func run() error {
 			return nil
 		}
 
-		re := regexp.MustCompile(`([[:alnum:]\.]+):([[:digit:]]+)`)
-		matches := re.FindAllStringSubmatch(verify, -1)
+		matches := hostportRe.FindAllStringSubmatch(verify, -1)
 		if len(matches) == 0 {
 			return fmt.Errorf("Issue parsing remote dns to check")
 		}
@@ -222,7 +223,6 @@ func run() error {
 			return err
 		}
 
-		fmt.Println(host)
 		err = certs.Verify(chain[0], chain[1:], host)
 		if err != nil {
 			err = fmt.Errorf("Certificate chain invalid %w", err)
@@ -272,8 +272,7 @@ func run() error {
 			return nil
 		}
 
-		re := regexp.MustCompile(`([[:alnum:]\.]+):([[:digit:]]+)`)
-		matches := re.FindAllStringSubmatch(output, -1)
+		matches := hostportRe.FindAllStringSubmatch(output, -1)
 		if len(matches) == 0 {
 			return fmt.Errorf("Issue parsing remote dns to check")
 		}
