@@ -20,6 +20,7 @@ import (
 var (
 	configLocation string
 	profileName    string
+	listProfiles   bool
 
 	sch string
 
@@ -47,6 +48,7 @@ var (
 func init() {
 	flag.StringVar(&configLocation, "c", certs.DefaultConfig.Dir, "Config file location")
 	flag.StringVar(&profileName, "profile", "", "Profile name")
+	flag.BoolVar(&listProfiles, "list-profiles", false, "Get available profiles")
 	flag.StringVar(&sch, "scheme", "", "Cryptographic scheme for certs [ed25519, ecdsa{256, 384, 512}, rsa{2048, 4096}]")
 
 	flag.StringVar(&verify, "verify", "", "Check cert validity")
@@ -78,11 +80,26 @@ func main() {
 }
 
 func run() error {
+	if listProfiles {
+		if configLocation != certs.DefaultConfig.Dir {
+			return errors.New("Cannot use profile if config locaion is also defined")
+		}
+		files, err := ioutil.ReadDir(fmt.Sprintf("%s/profiles", configLocation))
+		if err != nil {
+			return err
+		}
+		for _, f := range files {
+			if f.IsDir() {
+				fmt.Println(f.Name())
+			}
+		}
+		return nil
+	}
 	if profileName != "" {
 		if configLocation != certs.DefaultConfig.Dir {
 			return errors.New("Cannot use profile if config locaion is also defined")
 		}
-		configLocation = fmt.Sprintf("%s/%s", configLocation, profileName)
+		configLocation = fmt.Sprintf("%s/profiles/%s", configLocation, profileName)
 		if _, err := os.Stat(configLocation); os.IsNotExist(err) {
 			return errors.New("Profile does not exist")
 		}

@@ -54,13 +54,15 @@ func GenerateCA(sch string) (ca CA, err error) {
 		return
 	}
 
+	sub := config.DefaultSubject.ToPKIXName()
+	sub.CommonName = config.CA.Name
 	cert := &x509.Certificate{
 		SignatureAlgorithm: csr.SignatureAlgorithm,
 		PublicKeyAlgorithm: csr.PublicKeyAlgorithm,
 		PublicKey:          csr.PublicKey,
 
 		SerialNumber: big.NewInt(1),
-		Subject:      config.DefaultSubject.ToPKIXName(),
+		Subject:      sub,
 		DNSNames:     []string{config.CA.Name},
 		NotBefore:    time.Now(),
 		NotAfter:     time.Now().AddDate(10, 0, 0),
