@@ -31,11 +31,11 @@ type Config struct {
 }
 
 var DefaultConfig = Config{
-	Dir: fmt.Sprintf("%s/.config/certs", os.Getenv("HOME")),
+	Dir: fmt.Sprintf("%s/.config/certs/profiles/default", os.Getenv("HOME")),
 	CA: CAConfig{
 		Name:   "My CA",
-		Key:    fmt.Sprintf("%s/.config/certs/ca.key", os.Getenv("HOME")),
-		Crt:    fmt.Sprintf("%s/.config/certs/ca.crt", os.Getenv("HOME")),
+		Key:    fmt.Sprintf("%s/.config/certs/profiles/default/ca.key", os.Getenv("HOME")),
+		Crt:    fmt.Sprintf("%s/.config/certs/profiles/default/ca.crt", os.Getenv("HOME")),
 		Scheme: "ecdsa256",
 	},
 	DefaultSubject: scheme.Subject{
