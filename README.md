@@ -1,6 +1,6 @@
 # Certs
 
-A tool for dealing with certificates. I recommend using [smallstep](https://github.com/smallstep/cli)for any real ca stuff.
+A tool for dealing with certificates. I recommend using [smallstep](https://github.com/smallstep/cli) for any real ca stuff.
 
 ## Table of Contents
 
