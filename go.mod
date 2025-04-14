@@ -4,5 +4,5 @@ go 1.16
 
 require (
 	github.com/taybart/log v1.3.0
-	golang.org/x/crypto v0.31.0
+	golang.org/x/crypto v0.35.0
 )
