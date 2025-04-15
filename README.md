@@ -31,7 +31,7 @@ A tool for dealing with certificates. I recommend using [smallstep](https://gith
 # Installation
 
 ```
-$ go get -u github.com/taybart/certs/cmd/certs
+$ go install github.com/taybart/certs/cmd/certs@latest
 ```
 
 # Configuration
