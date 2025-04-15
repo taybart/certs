@@ -1,8 +1,13 @@
 module github.com/taybart/certs
 
-go 1.16
+go 1.23.0
+
+toolchain go1.24.2
 
 require (
-	github.com/taybart/log v1.3.0
-	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90
+	github.com/taybart/args v0.0.5
+	github.com/taybart/log v1.6.4
+	golang.org/x/term v0.31.0
 )
+
+require golang.org/x/sys v0.32.0 // indirect

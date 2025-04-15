@@ -7,12 +7,11 @@ import (
 	"errors"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"reflect"
 	"strings"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 
 	"github.com/taybart/certs/scheme"
 	"github.com/taybart/log"
@@ -52,7 +51,7 @@ var DefaultConfig = Config{
 
 var config = DefaultConfig
 
-func (c *Config) FirstRun() (err error) {
+func (c *Config) FirstRun() error {
 	env := make(map[string]string)
 	for _, v := range os.Environ() {
 		split := strings.Split(v, "=")
@@ -64,18 +63,16 @@ func (c *Config) FirstRun() (err error) {
 	fmt.Printf("      Hit enter to use default values, labeled with (%svalue%s)\n\n", log.Blue, log.Rtd)
 	rt := reflect.TypeOf(c.CA)
 	if rt.Kind() != reflect.Struct {
-		err = fmt.Errorf("issue getting config fields")
-		return
+		return fmt.Errorf("issue getting config fields")
 	}
 	fmt.Println("Certificate authority details...")
 	for i := 0; i < rt.NumField(); i++ {
 		f := rt.Field(i)
 		defaultValue := reflect.ValueOf(DefaultConfig.CA).Field(i).String()
 
-		var res string
-		res, err = readConfigVar(formatVarPrompt(f.Tag.Get("label"), defaultValue))
+		res, err := readConfigVar(formatVarPrompt(f.Tag.Get("label"), defaultValue))
 		if err != nil {
-			return
+			return err
 		}
 		if res == "" {
 			reflect.ValueOf(&c.CA).Elem().Field(i).SetString(defaultValue)
@@ -85,7 +82,7 @@ func (c *Config) FirstRun() (err error) {
 		t := template.Must(template.New("conf").Parse(res))
 		err = t.Execute(&buf, env)
 		if err != nil {
-			return
+			return err
 		}
 
 		reflect.ValueOf(&c.CA).Elem().Field(i).SetString(buf.String())
@@ -93,8 +90,7 @@ func (c *Config) FirstRun() (err error) {
 
 	rt = reflect.TypeOf(c.DefaultSubject)
 	if rt.Kind() != reflect.Struct {
-		err = fmt.Errorf("issue getting config fields")
-		return
+		return fmt.Errorf("issue getting config fields")
 	}
 	fmt.Println("Default CSR Subject...")
 	for i := 0; i < rt.NumField(); i++ {
@@ -107,9 +103,10 @@ func (c *Config) FirstRun() (err error) {
 		case reflect.String:
 			d := reflect.ValueOf(DefaultConfig.DefaultSubject).Field(i).String()
 
+			var err error
 			res, err = readConfigVar(formatVarPrompt(f.Tag.Get("label"), d))
 			if err != nil {
-				return
+				return err
 			}
 			if res == "" {
 				reflect.ValueOf(&c.DefaultSubject).Elem().Field(i).SetString(d)
@@ -119,15 +116,16 @@ func (c *Config) FirstRun() (err error) {
 			t := template.Must(template.New("conf").Parse(res))
 			err = t.Execute(&buf, env)
 			if err != nil {
-				return
+				return err
 			}
 			reflect.ValueOf(&c.CA).Elem().Field(i).SetString(buf.String())
 
 		case reflect.Slice:
 			sf := reflect.ValueOf(DefaultConfig.DefaultSubject).Field(i)
+			var err error
 			res, err = readConfigVar(formatVarPrompt(f.Tag.Get("label"), sf))
 			if err != nil {
-				return
+				return err
 			}
 			if res == "" {
 				reflect.ValueOf(&c.DefaultSubject).Elem().Field(i).Set(sf)
@@ -137,41 +135,36 @@ func (c *Config) FirstRun() (err error) {
 			t := template.Must(template.New("conf").Parse(res))
 			err = t.Execute(&buf, env)
 			if err != nil {
-				return
+				return err
 			}
 
 			arr := strings.Split(buf.String(), ",")
 			reflect.ValueOf(&c.DefaultSubject).Elem().Field(i).Set(reflect.ValueOf(arr))
 		default:
-			err = errors.New("Unkown field in config")
-			return
+			return errors.New("unknown field in config")
 		}
 	}
-	return
+	return nil
 }
 
-func (c Config) Save() (err error) {
-	var file []byte
-	file, err = json.MarshalIndent(c, "", " ")
+func (c Config) Save() error {
+	file, err := json.MarshalIndent(c, "", " ")
 	if err != nil {
-		err = fmt.Errorf("issue marshalling config file %w", err)
-		return
+		return fmt.Errorf("issue marshalling config file %w", err)
 	}
 
 	if _, err = os.Stat(config.Dir); os.IsNotExist(err) {
 		err = os.MkdirAll(config.Dir, 0755)
 		if err != nil {
-			err = fmt.Errorf("issue creating config folder %w", err)
-			return
+			return fmt.Errorf("issue creating config folder %w", err)
 		}
 	}
 
-	err = ioutil.WriteFile(fmt.Sprintf("%s/config.json", c.Dir), file, 0600)
+	err = os.WriteFile(fmt.Sprintf("%s/config.json", c.Dir), file, 0600)
 	if err != nil {
-		err = fmt.Errorf("issue writing config file %w", err)
-		return
+		return fmt.Errorf("issue writing config file %w", err)
 	}
-	return
+	return nil
 }
 
 func LoadConfig(configLocation string) (err error) {
@@ -187,17 +180,17 @@ func LoadConfig(configLocation string) (err error) {
 		err = nil
 		err = config.FirstRun()
 		if err != nil {
-			panic(fmt.Errorf("Could not set up config %w", err))
+			panic(fmt.Errorf("could not set up config %w", err))
 		}
 		err = config.Save()
 		if err != nil {
-			panic(fmt.Errorf("Could not save new config %w", err))
+			panic(fmt.Errorf("could not save new config %w", err))
 		}
 	} else if err != nil {
 		return err
 	}
 
-	c, err := ioutil.ReadFile(fmt.Sprintf("%s/config.json", config.Dir))
+	c, err := os.ReadFile(fmt.Sprintf("%s/config.json", config.Dir))
 	if err != nil {
 		err = fmt.Errorf("issue reading config %w", err)
 		return
@@ -214,7 +207,7 @@ func LoadConfig(configLocation string) (err error) {
 }
 
 func LoadConfigFromFile(location string) (err error) {
-	c, err := ioutil.ReadFile(location)
+	c, err := os.ReadFile(location)
 	if err != nil {
 		err = fmt.Errorf("issue reading config %w", err)
 		return
@@ -240,7 +233,7 @@ func (c *Config) GetCAPassword() []byte {
 	if err != nil {
 		panic(fmt.Errorf("can't open /dev/tty: %w", err))
 	}
-	bytePassword, err := terminal.ReadPassword(int(tty.Fd()))
+	bytePassword, err := term.ReadPassword(int(tty.Fd()))
 	if err != nil {
 		panic(err)
 	}
@@ -249,7 +242,7 @@ func (c *Config) GetCAPassword() []byte {
 
 }
 
-func formatVarPrompt(label string, defaultValue interface{}) string {
+func formatVarPrompt(label string, defaultValue any) string {
 	return fmt.Sprintf("%s%s%s (%s%s%s) -> ",
 		log.BoldGreen, label, log.Rtd,
 		log.Blue, defaultValue, log.Rtd)

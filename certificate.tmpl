@@ -1,0 +1,26 @@
+DNSNames: {{ .C.DNSNames }}
+Valid: {{ .C.NotBefore | formattime }} - {{ .C.NotAfter | formattime }}
+SerialNumber: {{ .C.SerialNumber }}
+{{ if .C.IsCA }}
+Certificate is a CA
+{{ end }}
+Subject: {{ .C.Subject.CommonName }}
+	 {{ if notempty .C.Subject.Organization }}{{ index .C.Subject.Organization 0 }}{{end}} {{ if notempty .C.Subject.OrganizationalUnit }}{{ index .C.Subject.OrganizationalUnit 0 }}{{ end }}
+	 {{ if notempty .C.Subject.StreetAddress }}{{ index .C.Subject.StreetAddress 0 }} {{end}}{{ if notempty .C.Subject.Locality }}{{ index .C.Subject.Locality 0 }}, {{end}}{{ if notempty .C.Subject.Province }}{{ index .C.Subject.Province 0 }}{{end}}{{ if notempty .C.Issuer.Country }}, {{ index .C.Issuer.Country 0 }}{{end}}
+
+Issuer:  {{ .C.Issuer.CommonName }}
+	 {{ if notempty .C.Issuer.Organization }}{{ index .C.Issuer.Organization 0 }}{{end}} {{ if notempty .C.Issuer.OrganizationalUnit }}{{ index .C.Issuer.OrganizationalUnit 0 }}{{ end }}
+	 {{ if notempty .C.Issuer.StreetAddress }}{{ index .C.Issuer.StreetAddress 0 }} {{end}}{{ if notempty .C.Issuer.Locality }}{{ index .C.Issuer.Locality 0 }}, {{end}}{{ if notempty .C.Issuer.Province }}{{ index .C.Issuer.Province 0 }}{{end}}{{ if notempty .C.Issuer.Country }}, {{ index .C.Issuer.Country 0 }}{{end}}
+
+KeyUsage: {{ .KeyUsages }}
+ExtKeyUsage: {{ .ExtKeyUsages }}
+
+PublicKeyAlgorithm: {{ .C.PublicKeyAlgorithm }}
+
+SignatureAlgorithm: {{ .C.SignatureAlgorithm }}
+Signature:
+{{ .C.Signature | printf "%x" | wrapsig 50 | indent 6 }}
+{{- if .C.OCSPServer }}
+OCSPServer: {{ .C.OCSPServer }}
+{{- end -}}
+

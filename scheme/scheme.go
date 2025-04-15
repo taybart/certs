@@ -10,7 +10,7 @@ import (
 	"fmt"
 	"os"
 
-	"golang.org/x/crypto/ssh/terminal"
+	"golang.org/x/term"
 )
 
 var (
@@ -28,41 +28,40 @@ type Scheme interface {
 	MarshalPrivateKeyToFile(dns string) (err error)
 }
 
-func NewScheme(s string) (sch Scheme, err error) {
+func NewScheme(s string) (Scheme, error) {
 	switch s {
+	// FIXME: confirm this is a valid certificate format
 	case "curve25519", "ed25519":
-		sch = NewEd25519Scheme(256)
+		return NewEd25519Scheme(256), fmt.Errorf("use a different scheme")
 	case "ecdsa", "ecdsa256":
-		sch = NewECDSAScheme(256)
+		return NewECDSAScheme(256), nil
 	case "ecdsa384":
-		sch = NewECDSAScheme(384)
+		return NewECDSAScheme(384), nil
 	case "ecdsa521":
-		sch = NewECDSAScheme(521)
+		return NewECDSAScheme(521), nil
 	case "rsa1024":
-		sch = NewRSAScheme(1024)
+		return NewRSAScheme(1024), nil
 	case "rsa", "rsa2048":
-		sch = NewRSAScheme(2048)
+		return NewRSAScheme(2048), nil
 	case "rsa4096":
-		sch = NewRSAScheme(4096)
+		return NewRSAScheme(4096), nil
 	default:
-		err = fmt.Errorf("unknown scheme %s", sch)
+		return nil, fmt.Errorf("unknown scheme %s", s)
 	}
-	return
 }
 
-func SchemeFromKey(sk crypto.PrivateKey, pk crypto.PublicKey) (sch Scheme, err error) {
-	switch sk.(type) {
+func SchemeFromKey(sk crypto.PrivateKey, pk crypto.PublicKey) (Scheme, error) {
+	switch sch := sk.(type) {
 	case ed25519.PrivateKey:
 		// sch = NewEd25519SchemeFromKeys(sk, pk)
-		break
+		return nil, fmt.Errorf("use a different scheme")
 	case *ecdsa.PrivateKey:
-		sch = NewECDSASchemeFromKeys(sk.(*ecdsa.PrivateKey), pk.(*ecdsa.PublicKey))
+		return NewECDSASchemeFromKeys(sk.(*ecdsa.PrivateKey), pk.(*ecdsa.PublicKey)), nil
 	case rsa.PrivateKey:
-		sch = NewRSASchemeFromKeys(sk.(*rsa.PrivateKey), pk.(*rsa.PublicKey))
+		return NewRSASchemeFromKeys(sk.(*rsa.PrivateKey), pk.(*rsa.PublicKey)), nil
 	default:
-		err = fmt.Errorf("unknown key scheme %s", sch)
+		return nil, fmt.Errorf("unknown key scheme %s", sch)
 	}
-	return
 }
 
 func SetDefaultSubject(s Subject) {
@@ -81,7 +80,7 @@ func readPassword() []byte {
 	if err != nil {
 		panic(fmt.Errorf("can't open /dev/tty: %w", err))
 	}
-	bytePassword, err := terminal.ReadPassword(int(tty.Fd()))
+	bytePassword, err := term.ReadPassword(int(tty.Fd()))
 	if err != nil {
 		panic(err)
 	}

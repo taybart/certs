@@ -4,15 +4,18 @@ import (
 	"bytes"
 	"crypto"
 	"crypto/x509"
+	_ "embed"
 	"encoding/pem"
 	"fmt"
 	"html/template"
-	"io/ioutil"
 	"os"
 	"os/exec"
 	"strings"
 	"time"
 )
+
+//go:embed certificate.tmpl
+var certificateTemplate string
 
 func CAExists() bool {
 	_, err := os.Stat(config.CA.Key)
@@ -32,7 +35,7 @@ func EditConfig() error {
 }
 
 func GetCACert() (*x509.Certificate, error) {
-	certs, err := LoadCertificates(config.CA.Crt)
+	certs, err := LoadCertsFromFile(config.CA.Crt)
 	if err != nil {
 		return nil, err
 	}
@@ -52,32 +55,6 @@ func HumanReadable(cert *x509.Certificate) string {
 		ExtKeyUsages: extkeyusages,
 	}
 
-	templ := `DNSNames: {{ .C.DNSNames }}
-Valid: {{ .C.NotBefore | formattime }} - {{ .C.NotAfter | formattime }}
-SerialNumber: {{ .C.SerialNumber }}
-{{ if .C.IsCA }}
-Certificate is a CA
-{{ end }}
-Subject: {{ .C.Subject.CommonName }}
-	 {{ if notempty .C.Subject.Organization }}{{ index .C.Subject.Organization 0 }}{{end}} {{ if notempty .C.Subject.OrganizationalUnit }}{{ index .C.Subject.OrganizationalUnit 0 }}{{ end }}
-	 {{ if notempty .C.Subject.StreetAddress }}{{ index .C.Subject.StreetAddress 0 }} {{end}}{{ if notempty .C.Subject.Locality }}{{ index .C.Subject.Locality 0 }}, {{end}}{{ if notempty .C.Subject.Province }}{{ index .C.Subject.Province 0 }}{{end}}{{ if notempty .C.Issuer.Country }}, {{ index .C.Issuer.Country 0 }}{{end}}
-
-Issuer:  {{ .C.Issuer.CommonName }}
-	 {{ if notempty .C.Issuer.Organization }}{{ index .C.Issuer.Organization 0 }}{{end}} {{ if notempty .C.Issuer.OrganizationalUnit }}{{ index .C.Issuer.OrganizationalUnit 0 }}{{ end }}
-	 {{ if notempty .C.Issuer.StreetAddress }}{{ index .C.Issuer.StreetAddress 0 }} {{end}}{{ if notempty .C.Issuer.Locality }}{{ index .C.Issuer.Locality 0 }}, {{end}}{{ if notempty .C.Issuer.Province }}{{ index .C.Issuer.Province 0 }}{{end}}{{ if notempty .C.Issuer.Country }}, {{ index .C.Issuer.Country 0 }}{{end}}
-
-KeyUsage: {{ .KeyUsages }}
-ExtKeyUsage: {{ .ExtKeyUsages }}
-
-PublicKeyAlgorithm: {{ .C.PublicKeyAlgorithm }}
-
-SignatureAlgorithm: {{ .C.SignatureAlgorithm }}
-Signature:
-{{ .C.Signature | printf "%x" | wrapsig 50 | indent 6 }}
-{{- if .C.OCSPServer }}
-OCSPServer: {{ .C.OCSPServer }}
-{{- end -}}
-`
 	funcMap := template.FuncMap{
 		"notempty": func(arr []string) bool {
 			if len(arr) == 1 {
@@ -87,7 +64,8 @@ OCSPServer: {{ .C.OCSPServer }}
 		},
 		"indent": func(spaces int, v string) string {
 			pad := strings.Repeat(" ", spaces)
-			return pad + strings.Replace(v, "\n", "\n"+pad, -1)
+			v = strings.ReplaceAll(v, "\n", "\n"+pad)
+			return fmt.Sprintf("%s%s", pad, v)
 		},
 		"wrapsig": func(width int, str string) (wrapped string) {
 			for i, c := range str {
@@ -102,7 +80,7 @@ OCSPServer: {{ .C.OCSPServer }}
 			return date.Format("Jan 2, 2006")
 		},
 	}
-	t := template.Must(template.New("cert").Funcs(funcMap).Parse(templ))
+	t := template.Must(template.New("cert").Funcs(funcMap).Parse(certificateTemplate))
 
 	var out bytes.Buffer
 	err := t.Execute(&out, values)
@@ -155,6 +133,7 @@ func getExtKeyUsage(cert *x509.Certificate) (extkeyusages []string) {
 	return
 }
 
+// asdf
 func Verify(cert *x509.Certificate, chain []*x509.Certificate, dns string) (err error) {
 	roots := x509.NewCertPool()
 	for _, c := range chain {
@@ -172,6 +151,7 @@ func Verify(cert *x509.Certificate, chain []*x509.Certificate, dns string) (err 
 	return
 }
 
+// asdf
 func VerifySystemRoots(cert *x509.Certificate, intermediateChain []*x509.Certificate, dns string) (err error) {
 	intermediates := x509.NewCertPool()
 	for _, c := range intermediateChain {
@@ -187,7 +167,7 @@ func VerifySystemRoots(cert *x509.Certificate, intermediateChain []*x509.Certifi
 	return
 }
 
-func LoadCertificates(file string) (certs []*x509.Certificate, err error) {
+func LoadCertsFromFile(file string) (certs []*x509.Certificate, err error) {
 	certblocks, err := openPEM(file)
 	if err != nil {
 		return
@@ -203,12 +183,14 @@ func LoadCertificates(file string) (certs []*x509.Certificate, err error) {
 	return
 }
 
+// asdf
 func MarshalPrivateKeyToPem(sk crypto.PrivateKey, name string) (err error) {
 	if sk == nil || name == "" {
-		return fmt.Errorf("Secret Key or name not set")
+		return fmt.Errorf("secret key or name not set")
 	}
 
-	keyOut, err := os.OpenFile(name+".key", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+	keyOut, err := os.OpenFile(fmt.Sprintf("%s.key", name),
+		os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return
 	}
@@ -223,38 +205,38 @@ func MarshalPrivateKeyToPem(sk crypto.PrivateKey, name string) (err error) {
 	return keyOut.Close()
 }
 
-func WritePemToFile(name string, block *pem.Block) (err error) {
+func WritePemToFile(name string, block *pem.Block) error {
 	keyOut, err := os.OpenFile(name, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
-		return
+		return err
 	}
 	err = pem.Encode(keyOut, block)
 	if err != nil {
-		return
+		return err
 	}
 	return keyOut.Close()
 }
 
-func MarshalCSRToPem(csr *x509.CertificateRequest) (err error) {
-	out, err := os.OpenFile(csr.DNSNames[0]+".csr", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+func WriteCSR(csr *x509.CertificateRequest) (err error) {
+	out, err := os.OpenFile(fmt.Sprintf("%s.csr", csr.DNSNames[0]),
+		os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return
 	}
-	err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw})
-	return
+	return pem.Encode(out, &pem.Block{Type: "CERTIFICATE REQUEST", Bytes: csr.Raw})
 }
 
-func MarshalCertificateToPem(cert *x509.Certificate) (err error) {
-	out, err := os.OpenFile(cert.DNSNames[0]+".crt", os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
+func WriteCertificate(cert *x509.Certificate) (err error) {
+	out, err := os.OpenFile(fmt.Sprintf("%s.crt", cert.DNSNames[0]),
+		os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
 		return
 	}
-	err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
-	return
+	return pem.Encode(out, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
 }
 
 func openPEM(name string) (blocks []*pem.Block, err error) {
-	pembytes, err := ioutil.ReadFile(name)
+	pembytes, err := os.ReadFile(name)
 	if err != nil {
 		return
 	}

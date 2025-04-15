@@ -4,6 +4,7 @@ import (
 	"crypto"
 	"crypto/rand"
 	"crypto/x509"
+	"encoding/json"
 	"encoding/pem"
 	"fmt"
 	"math/big"
@@ -21,37 +22,43 @@ type CA struct {
 	sch  scheme.Scheme
 }
 
-// BootstrapNetwork start a new Certificate authority
-func GenerateCA(sch string) (ca CA, err error) {
-	s, err := scheme.NewScheme(sch)
+// GenerateCA start a new Certificate authority
+func GenerateCA(sch scheme.Scheme, profile string) (*CA, error) {
+	sk, pk, err := sch.GenerateKeys()
 	if err != nil {
-		return
+		return nil, err
 	}
-	sk, pk, err := s.GenerateKeys()
+
+	directory := fmt.Sprintf("%s/profiles/%s", config.Dir, profile)
+	if err := os.MkdirAll(directory, os.ModePerm); err != nil {
+		return nil, err
+	}
+	b, err := json.MarshalIndent(config, "", "\t")
 	if err != nil {
-		return
+		return nil, err
 	}
+	os.WriteFile(fmt.Sprintf("%s/config.json", directory), b, os.ModePerm)
 
 	out, err := os.Create(config.CA.Key)
 	if err != nil {
-		return
+		return nil, err
 	}
-	skPem, err := s.PrivateKeyToPem()
+	skPem, err := sch.PrivateKeyToPem()
 	if err != nil {
-		return
+		return nil, err
 	}
 	err = pem.Encode(out, skPem)
 	if err != nil {
-		return
+		return nil, err
 	}
 	err = out.Close()
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	_, csr, err := s.GenerateDefaultCSR(config.CA.Name)
+	_, csr, err := sch.GenerateDefaultCSR(config.CA.Name)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	sub := config.DefaultSubject.ToPKIXName()
@@ -76,38 +83,39 @@ func GenerateCA(sch string) (ca CA, err error) {
 
 	certbytes, err := x509.CreateCertificate(rand.Reader, cert, cert, pk, sk)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	out, err = os.Create(config.CA.Crt)
 	if err != nil {
-		return
+		return nil, err
 	}
 	err = pem.Encode(out, &pem.Block{Type: "CERTIFICATE", Bytes: certbytes})
 	if err != nil {
-		return
+		return nil, err
 	}
 	err = out.Close()
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	cert, err = x509.ParseCertificate(certbytes)
 	if err != nil {
-		return
+		return nil, err
 	}
 
-	ca = CA{Cert: cert, sk: sk, sch: s}
-	return
+	return &CA{Cert: cert, sk: sk, sch: sch}, nil
 }
 
 // LoadCA
 func LoadCA() (ca CA, err error) {
 	keys, err := openPEM(config.CA.Key)
 	if err != nil {
+		err = fmt.Errorf("could not load ca key file %w", err)
 		return
 	}
 	keybytes := keys[0].Bytes
+	// TODO: use AES instead
 	if x509.IsEncryptedPEMBlock(keys[0]) {
 		keybytes, err = x509.DecryptPEMBlock(keys[0], config.GetCAPassword())
 		if err != nil {
@@ -140,21 +148,21 @@ func LoadCA() (ca CA, err error) {
 }
 
 // SignRequest signs x509 certificate request
-func (ca *CA) SignRequest(asn1Data []byte) (cert []byte, err error) {
+func (ca *CA) SignRequest(asn1Data []byte) (*x509.Certificate, error) {
 	csr, err := x509.ParseCertificateRequest(asn1Data)
 	if err != nil {
-		return
+		return nil, err
 	}
 
 	if err = csr.CheckSignature(); err != nil {
-		return
+		return nil, err
 	}
 
 	// Create template for certificate creation, uses properties from the request and root certificate.
 	serialNumberLimit := new(big.Int).Lsh(big.NewInt(1), 128)
 	serialNumber, err := rand.Int(rand.Reader, serialNumberLimit)
 	if err != nil {
-		return
+		return nil, err
 	}
 	// Client Template
 	template := &x509.Certificate{
@@ -173,8 +181,11 @@ func (ca *CA) SignRequest(asn1Data []byte) (cert []byte, err error) {
 		KeyUsage:    x509.KeyUsageDigitalSignature | x509.KeyUsageCRLSign,
 		ExtKeyUsage: []x509.ExtKeyUsage{x509.ExtKeyUsageClientAuth, x509.ExtKeyUsageServerAuth},
 	}
-	cert, err = x509.CreateCertificate(rand.Reader, template, ca.Cert, template.PublicKey, ca.sk)
-	return
+	certBytes, err := x509.CreateCertificate(rand.Reader, template, ca.Cert, template.PublicKey, ca.sk)
+	if err != nil {
+		return nil, err
+	}
+	return x509.ParseCertificate(certBytes)
 }
 
 // SignCA.Request signs x509 certificate request
