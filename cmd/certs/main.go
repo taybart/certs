@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"crypto/x509"
+	"encoding/pem"
 	"errors"
 	"fmt"
 	"os"
@@ -24,6 +25,7 @@ var (
 		ListProfiles bool   `arg:"list-profiles"`
 		Scheme       string `arg:"scheme"`
 		// certificates
+		CSR      string `arg:"signing-request"`
 		Hostname string `arg:"hostname"`
 		Sign     bool   `arg:"sign"`
 
@@ -51,6 +53,7 @@ func run() error {
 		return err
 	}
 
+	/*** CA ***/
 	if cmd.ListProfiles {
 		files, err := os.ReadDir(fmt.Sprintf("%s/profiles", cmd.Location))
 		if err != nil {
@@ -91,31 +94,11 @@ func run() error {
 		return err
 	}
 
-	if cmd.Hostname != "" {
-		csr, err := createCSR(cmd.Hostname, sch)
-		if err != nil {
-			return err
-		}
-		if cmd.Sign {
-			ca, err := certs.LoadCA()
-			if err != nil {
-				return err
-			}
-			cert, err := ca.SignRequest(csr.Raw)
-			if err != nil {
-				return err
-			}
-			pool := []*x509.Certificate{ca.Cert}
-			if err := certs.Verify(cert, pool, cmd.Hostname); err != nil {
-				return err
-			}
-			if err := certs.WriteCertificate(cert); err != nil {
-				return err
-			}
-		}
-		return nil
+	if cmd.Hostname != "" || cmd.CSR != "" {
+		return doCSR(sch)
 	}
 
+	/*** Network ***/
 	if cmd.Print != "" {
 		if isPath(cmd.Print) {
 			crts, err := certs.LoadCertsFromFile(cmd.Print)
@@ -144,20 +127,51 @@ func run() error {
 	return nil
 }
 
-func createCSR(hostname string, scheme scheme.Scheme) (*x509.CertificateRequest, error) {
-	skPem, csr, err := scheme.GenerateDefaultCSR(hostname)
-	if err != nil {
-		return nil, err
-	}
-	keyfile := fmt.Sprintf("%s.key", csr.DNSNames[0])
-	if err = certs.WritePemToFile(keyfile, skPem); err != nil {
-		return nil, err
-	}
-	if err := certs.WriteCSR(csr); err != nil {
-		return nil, err
+func doCSR(sch scheme.Scheme) error {
+	var csr *x509.CertificateRequest
+	var skPem *pem.Block
+	var err error
+
+	if cmd.Hostname != "" {
+		skPem, csr, err = sch.GenerateDefaultCSR(cmd.Hostname)
+		if err != nil {
+			return err
+		}
+	} else if cmd.CSR != "" {
+		skPem, csr, err = scheme.CSRFromFile(cmd.CSR)
+		if err != nil {
+			return err
+		}
+	} else {
+		return fmt.Errorf("could not create csr")
 	}
 
-	return csr, nil
+	err = certs.WritePemToFile(fmt.Sprintf("%s.key", csr.DNSNames[0]), skPem)
+	if err != nil {
+		return err
+	}
+	if err := certs.WriteCSR(csr); err != nil {
+		return err
+	}
+
+	if cmd.Sign {
+		ca, err := certs.LoadCA()
+		if err != nil {
+			return err
+		}
+		cert, err := ca.SignRequest(csr.Raw)
+		if err != nil {
+			return err
+		}
+		pool := []*x509.Certificate{ca.Cert}
+		if err := certs.Verify(cert, pool, cmd.Hostname); err != nil {
+			return err
+		}
+		if err := certs.WriteCertificate(cert); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func isPiped() bool {

@@ -9,8 +9,7 @@ var (
 	app = args.App{
 		Name:    "Certs",
 		Version: "v0.0.1",
-		// Author:  "taybart <taybart@email.com>",
-		About: "Certificate manager",
+		About:   "Certificate manager",
 		Args: map[string]*args.Arg{
 			// CA
 			"gen": {
@@ -37,6 +36,10 @@ var (
 				Help:  "Cryptography scheme to use ed25519, ecdsa{256, 384, 512}, rsa{2048, 4096}",
 			},
 			// certificates
+			"signing-request": {
+				Short: "csr",
+				Help:  "Certificate signing request to sign",
+			},
 			"hostname": {
 				Short: "H",
 				Help:  "Generate CSR for provided hostname",

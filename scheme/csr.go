@@ -5,7 +5,7 @@ import (
 	"crypto/x509/pkix"
 	"encoding/json"
 	"encoding/pem"
-	"io/ioutil"
+	"os"
 )
 
 // These types are necessary when using json encoded csr requests
@@ -42,7 +42,7 @@ func (s Subject) ToPKIXName() pkix.Name {
 	}
 }
 func CSRFromFile(filename string) (skPem *pem.Block, csr *x509.CertificateRequest, err error) {
-	b, err := ioutil.ReadFile(filename)
+	b, err := os.ReadFile(filename)
 	if err != nil {
 		return
 	}
