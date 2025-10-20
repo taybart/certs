@@ -13,8 +13,8 @@ var (
 		Args: map[string]*args.Arg{
 			// CA
 			"gen": {
-				Help: "Generate a new CA",
-				// Default: false,
+				Help:    "Generate a new CA",
+				Default: false,
 			},
 			// existing
 			"config": {

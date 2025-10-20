@@ -3,11 +3,16 @@ package certs
 import (
 	"bytes"
 	"crypto"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/rand"
+	"crypto/sha256"
 	"crypto/x509"
 	_ "embed"
 	"encoding/pem"
 	"fmt"
 	"html/template"
+	"io"
 	"os"
 	"os/exec"
 	"strings"
@@ -233,6 +238,46 @@ func WriteCertificate(cert *x509.Certificate) (err error) {
 		return
 	}
 	return pem.Encode(out, &pem.Block{Type: "CERTIFICATE", Bytes: cert.Raw})
+}
+
+func Decrypt(password, ciphertext []byte) ([]byte, error) {
+	gcm, err := newGCM(password)
+	if err != nil {
+		return nil, err
+	}
+	nonceSize := gcm.NonceSize()
+	if len(ciphertext) < nonceSize {
+		return nil, fmt.Errorf("ciphertext too short")
+	}
+
+	nonce, ciphertext := ciphertext[:nonceSize], ciphertext[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+	return plaintext, nil
+}
+
+func Encrypt(password, plaintext []byte) ([]byte, error) {
+	gcm, err := newGCM(password)
+	if err != nil {
+		return nil, err
+	}
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+	return gcm.Seal(nonce, nonce, plaintext, nil), nil
+}
+
+func newGCM(password []byte) (cipher.AEAD, error) {
+	hash := sha256.Sum256([]byte(password))
+
+	c, err := aes.NewCipher(hash[:])
+	if err != nil {
+		return nil, err
+	}
+	return cipher.NewGCM(c)
 }
 
 func openPEM(name string) (blocks []*pem.Block, err error) {
