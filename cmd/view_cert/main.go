@@ -20,6 +20,7 @@ func main() {
 func run() error {
 
 	if isPiped() {
+		// TODO: check for multiple certs being piped and base64 encoded ones
 		scanner := bufio.NewScanner(os.Stdin)
 		input := ""
 		for scanner.Scan() {
