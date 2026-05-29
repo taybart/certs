@@ -91,6 +91,7 @@ func HumanReadable(cert *x509.Certificate) string {
 	err := t.Execute(&out, values)
 	if err != nil {
 		fmt.Println(err)
+		return ""
 	}
 	return out.String()
 }
@@ -223,6 +224,9 @@ func WritePemToFile(name string, block *pem.Block) error {
 }
 
 func WriteCSR(csr *x509.CertificateRequest) (err error) {
+	if len(csr.DNSNames) == 0 {
+		return fmt.Errorf("CSR has no DNS names")
+	}
 	out, err := os.OpenFile(fmt.Sprintf("%s.csr", csr.DNSNames[0]),
 		os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
@@ -232,6 +236,9 @@ func WriteCSR(csr *x509.CertificateRequest) (err error) {
 }
 
 func WriteCertificate(cert *x509.Certificate) (err error) {
+	if len(cert.DNSNames) == 0 {
+		return fmt.Errorf("certificate has no DNS names")
+	}
 	out, err := os.OpenFile(fmt.Sprintf("%s.crt", cert.DNSNames[0]),
 		os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0600)
 	if err != nil {
@@ -286,7 +293,9 @@ func openPEM(name string) (blocks []*pem.Block, err error) {
 		return
 	}
 	block, rest := pem.Decode(pembytes)
-	blocks = append(blocks, block)
+	if block != nil {
+		blocks = append(blocks, block)
+	}
 	if rest != nil {
 		var lastloop []byte
 		for {

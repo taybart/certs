@@ -64,9 +64,8 @@ func run() error {
 func isPiped() bool {
 	info, err := os.Stdin.Stat()
 	if err != nil {
-		panic(err)
+		return false
 	}
-
 	return info.Mode()&os.ModeCharDevice == 0
 }
 

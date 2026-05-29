@@ -37,7 +37,9 @@ func GenerateCA(sch scheme.Scheme, profile string) (*CA, error) {
 	if err != nil {
 		return nil, err
 	}
-	os.WriteFile(fmt.Sprintf("%s/config.json", directory), b, os.ModePerm)
+	if err := os.WriteFile(fmt.Sprintf("%s/config.json", directory), b, 0600); err != nil {
+		return nil, err
+	}
 
 	out, err := os.Create(config.CA.Key)
 	if err != nil {
@@ -117,7 +119,12 @@ func LoadCA() (ca CA, err error) {
 	keybytes := keys[0].Bytes
 	// TODO: use AES instead
 	if x509.IsEncryptedPEMBlock(keys[0]) {
-		keybytes, err = x509.DecryptPEMBlock(keys[0], config.GetCAPassword())
+		var pw []byte
+		pw, err = config.GetCAPassword()
+		if err != nil {
+			return
+		}
+		keybytes, err = x509.DecryptPEMBlock(keys[0], pw)
 		if err != nil {
 			fmt.Println(log.Red, "✗", log.Rtd)
 			return

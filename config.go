@@ -180,11 +180,11 @@ func LoadConfig(configLocation string) (err error) {
 		err = nil
 		err = config.FirstRun()
 		if err != nil {
-			panic(fmt.Errorf("could not set up config %w", err))
+			return fmt.Errorf("could not set up config %w", err)
 		}
 		err = config.Save()
 		if err != nil {
-			panic(fmt.Errorf("could not save new config %w", err))
+			return fmt.Errorf("could not save new config %w", err)
 		}
 	} else if err != nil {
 		return err
@@ -227,19 +227,17 @@ func GetDefaultScheme() string {
 	return config.CA.Scheme
 }
 
-func (c *Config) GetCAPassword() []byte {
+func (c *Config) GetCAPassword() ([]byte, error) {
 	fmt.Printf("Enter CA Password -> ")
 	tty, err := os.Open("/dev/tty") // Use tty just in case stdin is pipe
 	if err != nil {
-		panic(fmt.Errorf("can't open /dev/tty: %w", err))
+		return nil, fmt.Errorf("can't open /dev/tty: %w", err)
 	}
 	bytePassword, err := term.ReadPassword(int(tty.Fd()))
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
-
-	return bytePassword
-
+	return bytePassword, nil
 }
 
 func formatVarPrompt(label string, defaultValue any) string {
